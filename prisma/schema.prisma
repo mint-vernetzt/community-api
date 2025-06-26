@@ -1,0 +1,1577 @@
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "binary"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_DIRECT_URL")
+}
+
+model Profile {
+  id                        String                               @id @default(uuid())
+  username                  String                               @unique
+  email                     String
+  email2                    String?
+  phone                     String?
+  website                   String?
+  avatar                    String?
+  background                String? // legacy
+  backgroundImage           Image?                               @relation(fields: [backgroundImageId], references: [id], onDelete: SetNull)
+  backgroundImageId         String?                              @map("background_image_id")
+  facebook                  String?
+  linkedin                  String?
+  twitter                   String?
+  xing                      String?
+  bio                       String?
+  bioRTEState               String?                              @map("bio_rte_state")
+  skills                    String[]
+  interests                 String[]
+  academicTitle             String?                              @map("academic_title")
+  createdAt                 DateTime                             @default(now()) @map("created_at")
+  firstName                 String                               @map("first_name")
+  lastName                  String                               @map("last_name")
+  publicFields              String[]                             @map("public_fields") // legacy
+  termsAccepted             Boolean                              @map("terms_accepted")
+  termsAcceptedAt           DateTime                             @default(now()) @map("terms_accepted_at")
+  updatedAt                 DateTime                             @default(now()) @map("updated_at")
+  position                  String?
+  instagram                 String?
+  youtube                   String?
+  mastodon                  String?
+  tiktok                    String?
+  score                     Int                                  @default(0)
+  areas                     AreasOnProfiles[]
+  memberOf                  MemberOfOrganization[]
+  offers                    OffersOnProfiles[]
+  participatedEvents        ParticipantOfEvent[]
+  seekings                  SeekingsOnProfiles[]
+  contributedEvents         SpeakerOfEvent[]
+  teamMemberOfEvents        TeamMemberOfEvent[]
+  teamMemberOfProjects      TeamMemberOfProject[]
+  waitingForEvents          WaitingParticipantOfEvent[]
+  profileVisibility         ProfileVisibility?
+  administeredEvents        AdminOfEvent[]
+  administeredOrganizations AdminOfOrganization[]
+  administeredProjects      AdminOfProject[]
+  notificationSettings      NotificationSettings?
+  profileAbuseReport        ProfileAbuseReport[]                 @relation("reporter_of_profile_abuse_report")
+  organizationAbuseReport   OrganizationAbuseReport[]            @relation("reporter_of_organization_abuse_report")
+  eventAbuseReport          EventAbuseReport[]                   @relation("reporter_of_event_abuse_report")
+  projectAbuseReport        ProjectAbuseReport[]                 @relation("reporter_of_project_abuse_report")
+  abuseReports              ProfileAbuseReport[]                 @relation("profile_of_profile_abuse_report")
+  joinOrganizationRequests  RequestToOrganizationToAddProfile[]
+  joinOrganizationInvites   InviteForProfileToJoinOrganization[]
+
+  filterVector Unsupported("tsvector")? @map("filter_vector")
+
+  @@index([filterVector], type: Gin)
+  @@map("profiles")
+}
+
+model ProfileVisibility {
+  id                        String  @id @default(uuid())
+  username                  Boolean @default(true)
+  email                     Boolean @default(false)
+  email2                    Boolean @default(false)
+  phone                     Boolean @default(false)
+  website                   Boolean @default(false)
+  avatar                    Boolean @default(true)
+  background                Boolean @default(true) // legacy
+  backgroundImage           Boolean @default(true) @map("background_image")
+  backgroundImageId         Boolean @default(true) @map("background_image_id")
+  facebook                  Boolean @default(false)
+  linkedin                  Boolean @default(false)
+  twitter                   Boolean @default(false)
+  xing                      Boolean @default(false)
+  bio                       Boolean @default(false)
+  bioRTEState               Boolean @default(false) @map("bio_rte_state")
+  skills                    Boolean @default(false)
+  interests                 Boolean @default(false)
+  academicTitle             Boolean @default(true) @map("academic_title")
+  createdAt                 Boolean @default(true) @map("created_at")
+  firstName                 Boolean @default(true) @map("first_name")
+  lastName                  Boolean @default(true) @map("last_name")
+  termsAccepted             Boolean @default(true) @map("terms_accepted")
+  termsAcceptedAt           Boolean @default(true) @map("terms_accepted_at")
+  updatedAt                 Boolean @default(true) @map("updated_at")
+  position                  Boolean @default(false)
+  instagram                 Boolean @default(false)
+  youtube                   Boolean @default(false)
+  mastodon                  Boolean @default(false)
+  tiktok                    Boolean @default(false)
+  score                     Boolean @default(true)
+  areas                     Boolean @default(true)
+  memberOf                  Boolean @default(true)
+  offers                    Boolean @default(false)
+  participatedEvents        Boolean @default(false)
+  seekings                  Boolean @default(false)
+  contributedEvents         Boolean @default(true)
+  teamMemberOfEvents        Boolean @default(true)
+  teamMemberOfProjects      Boolean @default(true)
+  waitingForEvents          Boolean @default(false)
+  profile                   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  profileId                 String  @unique
+  administeredOrganizations Boolean @default(false)
+  administeredEvents        Boolean @default(false)
+  administeredProjects      Boolean @default(false)
+  notificationSettings      Boolean @default(false) @map("notfication_settings")
+  profileAbuseReport        Boolean @default(false)
+  organizationAbuseReport   Boolean @default(false)
+  eventAbuseReport          Boolean @default(false)
+  projectAbuseReport        Boolean @default(false)
+  abuseReports              Boolean @default(false)
+  joinOrganizationRequests  Boolean @default(false)
+  joinOrganizationInvites   Boolean @default(false)
+
+  @@map("profile_visibilities")
+}
+
+model NotificationSettings {
+  id        String  @id @default(uuid())
+  updates   Boolean @default(true)
+  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  profileId String  @unique
+
+  @@map("notification_settings")
+}
+
+model ProfileAbuseReport {
+  id         String                       @id @default(uuid())
+  title      String // ${reporter.username} reported profile ${profile.username}  
+  status     AbuseReportStatus            @default(open)
+  createdAt  DateTime                     @default(now()) @map("created_at")
+  updatedAt  DateTime                     @updatedAt @map("updated_at")
+  reporter   Profile                      @relation("reporter_of_profile_abuse_report", fields: [reporterId], references: [id])
+  reporterId String                       @map("reporter_id")
+  profile    Profile                      @relation("profile_of_profile_abuse_report", fields: [profileId], references: [id])
+  profileId  String                       @map("profile_id")
+  reasons    ProfileAbuseReportReason[]
+  revisions  ProfileAbuseReportRevision[]
+
+  @@map("profile_abuse_reports")
+}
+
+model ProfileAbuseReportReason {
+  id                   String             @id @default(uuid())
+  description          String
+  status               AbuseReportStatus  @default(open)
+  profileAbuseReport   ProfileAbuseReport @relation(fields: [profileAbuseReportId], references: [id])
+  profileAbuseReportId String             @map("profile_abuse_report_id")
+  createdAt            DateTime           @default(now()) @map("created_at")
+  updatedAt            DateTime           @updatedAt @map("updated_at")
+
+  @@map("profile_abuse_report_reasons")
+}
+
+model ProfileAbuseReportReasonSuggestion {
+  id          String @id @default(uuid())
+  slug        String @unique
+  description String
+
+  @@map("profile_abuse_report_reason_suggestions")
+}
+
+model ProfileAbuseReportRevision {
+  id                   String             @id @default(uuid())
+  revisor              String
+  log                  String
+  createdAt            DateTime           @default(now()) @map("created_at")
+  profileAbuseReport   ProfileAbuseReport @relation(fields: [profileAbuseReportId], references: [id])
+  profileAbuseReportId String
+
+  @@map("profile_abuse_report_revisions")
+}
+
+model AreasOnProfiles {
+  profileId String
+  areaId    String
+  area      Area    @relation(fields: [areaId], references: [id], onDelete: Cascade)
+  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@id([profileId, areaId])
+  @@map("areas_on_profiles")
+}
+
+model SeekingsOnProfiles {
+  profileId String
+  offerId   String
+  offer     Offer   @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@id([profileId, offerId])
+  @@map("seekings_on_profiles")
+}
+
+model OffersOnProfiles {
+  profileId String
+  offerId   String
+  offer     Offer   @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@id([profileId, offerId])
+  @@map("offers_on_profiles")
+}
+
+model Organization {
+  id                     String                               @id @default(uuid())
+  name                   String
+  slug                   String                               @unique
+  email                  String?
+  phone                  String?
+  street                 String?
+  city                   String?
+  website                String?
+  logo                   String?
+  background             String? // legacy
+  backgroundImage        Image?                               @relation(fields: [backgroundImageId], references: [id], onDelete: SetNull)
+  backgroundImageId      String?                              @map("background_image_id")
+  facebook               String?
+  linkedin               String?
+  twitter                String?
+  xing                   String?
+  bio                    String?
+  bioRTEState            String?                              @map("bio_rte_state")
+  quote                  String?
+  createdAt              DateTime                             @default(now()) @map("created_at")
+  publicFields           String[]                             @map("public_fields") // legacy
+  quoteAuthor            String?                              @map("quote_author")
+  quoteAuthorInformation String?                              @map("quote_author_information")
+  streetNumber           String?                              @map("street_number")
+  supportedBy            String[]                             @map("supported_by")
+  updatedAt              DateTime                             @default(now()) @updatedAt @map("updated_at")
+  zipCode                String?                              @map("zip_code")
+  instagram              String?
+  youtube                String?
+  mastodon               String?
+  tiktok                 String?
+  score                  Int                                  @default(0)
+  areas                  AreasOnOrganizations[]
+  focuses                FocusesOnOrganizations[]
+  networkMembers         MemberOfNetwork[]                    @relation("network")
+  memberOf               MemberOfNetwork[]                    @relation("network_member")
+  teamMembers            MemberOfOrganization[]
+  types                  OrganizationTypesOnOrganizations[]
+  networkTypes           NetworkTypesOnOrganizations[]
+  responsibleForEvents   ResponsibleOrganizationOfEvent[]
+  responsibleForProject  ResponsibleOrganizationOfProject[]
+  organizationVisibility OrganizationVisibility?
+  admins                 AdminOfOrganization[]
+  abuseReports           OrganizationAbuseReport[]            @relation("organization_of_organization_abuse_report")
+  profileJoinRequests    RequestToOrganizationToAddProfile[]
+  profileJoinInvites     InviteForProfileToJoinOrganization[]
+
+  filterVector                Unsupported("tsvector")?             @map("filter_vector")
+  sentNetworkJoinRequests     RequestToNetworkToAddOrganization[]  @relation("sent_requests")
+  receivedNetworkJoinRequests RequestToNetworkToAddOrganization[]  @relation("received_requests")
+  sentNetworkJoinInvites      InviteForOrganizationToJoinNetwork[] @relation("sent_invites")
+  receivedNetworkJoinInvites  InviteForOrganizationToJoinNetwork[] @relation("received_invites")
+
+  @@index([filterVector], type: Gin)
+  @@map("organizations")
+}
+
+model OrganizationVisibility {
+  id                     String       @id @default(uuid())
+  name                   Boolean      @default(true)
+  slug                   Boolean      @default(true)
+  email                  Boolean      @default(false)
+  phone                  Boolean      @default(false)
+  street                 Boolean      @default(true)
+  city                   Boolean      @default(true)
+  website                Boolean      @default(false)
+  logo                   Boolean      @default(true)
+  background             Boolean      @default(true) // legacy
+  backgroundImage        Boolean      @default(true) @map("background_image")
+  backgroundImageId      Boolean      @default(true) @map("background_image_id")
+  facebook               Boolean      @default(true)
+  linkedin               Boolean      @default(true)
+  twitter                Boolean      @default(true)
+  xing                   Boolean      @default(true)
+  bio                    Boolean      @default(false)
+  bioRTEState            Boolean      @default(false) @map("bio_rte_state")
+  quote                  Boolean      @default(true)
+  createdAt              Boolean      @default(true) @map("created_at")
+  quoteAuthor            Boolean      @default(true) @map("quote_author")
+  quoteAuthorInformation Boolean      @default(true) @map("quote_author_information")
+  streetNumber           Boolean      @default(true) @map("street_number")
+  supportedBy            Boolean      @default(true) @map("supported_by")
+  updatedAt              Boolean      @default(true) @map("updated_at")
+  zipCode                Boolean      @default(true) @map("zip_code")
+  instagram              Boolean      @default(true)
+  youtube                Boolean      @default(true)
+  mastodon               Boolean      @default(true)
+  tiktok                 Boolean      @default(true)
+  score                  Boolean      @default(true)
+  areas                  Boolean      @default(true)
+  focuses                Boolean      @default(false)
+  networkMembers         Boolean      @default(true)
+  memberOf               Boolean      @default(true)
+  teamMembers            Boolean      @default(true)
+  admins                 Boolean      @default(false)
+  types                  Boolean      @default(true)
+  networkTypes           Boolean      @default(true)
+  responsibleForEvents   Boolean      @default(true)
+  responsibleForProject  Boolean      @default(true)
+  abuseReports           Boolean      @default(false)
+  profileJoinRequests    Boolean      @default(false)
+  profileJoinInvites     Boolean      @default(false)
+  organization           Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId         String       @unique
+
+  @@map("organization_visibilities")
+}
+
+model OrganizationAbuseReport {
+  id             String                            @id @default(uuid())
+  title          String
+  status         AbuseReportStatus                 @default(open)
+  createdAt      DateTime                          @default(now()) @map("created_at")
+  updatedAt      DateTime                          @updatedAt @map("updated_at")
+  reporter       Profile                           @relation("reporter_of_organization_abuse_report", fields: [reporterId], references: [id])
+  reporterId     String                            @map("reporter_id")
+  organization   Organization                      @relation("organization_of_organization_abuse_report", fields: [organizationId], references: [id])
+  organizationId String                            @map("organization_id")
+  reasons        OrganizationAbuseReportReason[]
+  revisions      OrganizationAbuseReportRevision[]
+
+  @@map("organization_abuse_reports")
+}
+
+model OrganizationAbuseReportReason {
+  id                        String                  @id @default(uuid())
+  description               String
+  status                    AbuseReportStatus       @default(open)
+  organizationAbuseReport   OrganizationAbuseReport @relation(fields: [organizationAbuseReportId], references: [id])
+  organizationAbuseReportId String                  @map("organization_abuse_report_id")
+  createdAt                 DateTime                @default(now()) @map("created_at")
+  updatedAt                 DateTime                @updatedAt @map("updated_at")
+
+  @@map("organization_abuse_report_reasons")
+}
+
+model OrganizationAbuseReportReasonSuggestion {
+  id          String @id @default(uuid())
+  slug        String @unique
+  description String
+
+  @@map("organization_abuse_report_reason_suggestions")
+}
+
+model OrganizationAbuseReportRevision {
+  id                        String                  @id @default(uuid())
+  revisor                   String
+  log                       String
+  createdAt                 DateTime                @default(now()) @map("created_at")
+  organizationAbuseReport   OrganizationAbuseReport @relation(fields: [organizationAbuseReportId], references: [id])
+  organizationAbuseReportId String
+
+  @@map("organization_abuse_report_revisions")
+}
+
+model OrganizationTypesOnOrganizations {
+  organizationId     String
+  organizationTypeId String
+  organization       Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationType   OrganizationType @relation(fields: [organizationTypeId], references: [id], onDelete: Cascade)
+
+  @@id([organizationId, organizationTypeId])
+  @@map("organization_types_on_organizations")
+}
+
+model NetworkTypesOnOrganizations {
+  organizationId String
+  networkTypeId  String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  networkType    NetworkType  @relation(fields: [networkTypeId], references: [id], onDelete: Cascade)
+
+  @@id([organizationId, networkTypeId])
+  @@map("network_types_on_organizations")
+}
+
+model FocusesOnOrganizations {
+  organizationId String
+  focusId        String
+  focus          Focus        @relation(fields: [focusId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@id([organizationId, focusId])
+  @@map("focuses_on_organizations")
+}
+
+model MemberOfOrganization {
+  profileId      String
+  organizationId String
+  isPrivileged   Boolean      @default(false) // legacy
+  createdAt      DateTime     @default(now()) @map("created_at")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  profile        Profile      @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@id([profileId, organizationId])
+  @@map("members_of_organizations")
+}
+
+model AdminOfOrganization {
+  profileId      String
+  organizationId String
+  createdAt      DateTime     @default(now()) @map("created_at")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  profile        Profile      @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@id([profileId, organizationId])
+  @@map("admins_of_organizations")
+}
+
+model MemberOfNetwork {
+  networkId       String
+  networkMemberId String
+  createdAt       DateTime     @default(now()) @map("created_at")
+  network         Organization @relation("network", fields: [networkId], references: [id], onDelete: Cascade)
+  networkMember   Organization @relation("network_member", fields: [networkMemberId], references: [id], onDelete: Cascade)
+
+  @@id([networkId, networkMemberId])
+  @@map("members_of_networks")
+}
+
+model AreasOnOrganizations {
+  organizationId String
+  areaId         String
+  area           Area         @relation(fields: [areaId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@id([organizationId, areaId])
+  @@map("areas_on_organizations")
+}
+
+model Event {
+  id                       String                           @id @default(uuid())
+  name                     String
+  slug                     String                           @unique
+  startTime                DateTime                         @map("start_time")
+  endTime                  DateTime                         @map("end_time")
+  parentEventId            String?                          @map("parent_event_id")
+  description              String?
+  descriptionRTEState      String?                          @map("description_rte_state")
+  published                Boolean                          @default(false)
+  createdAt                DateTime                         @default(now()) @map("created_at")
+  updatedAt                DateTime                         @default(now()) @updatedAt @map("updated_at")
+  experienceLevelId        String?                          @map("experience_level_id")
+  background               String? // legacy
+  backgroundImage          Image?                           @relation(fields: [backgroundImageId], references: [id], onDelete: SetNull)
+  backgroundImageId        String?                          @map("background_image_id")
+  conferenceLink           String?                          @map("conference_link")
+  conferenceCode           String?                          @map("conference_code")
+  participantLimit         Int?                             @map("participant_limit")
+  participationUntil       DateTime                         @map("participation_until")
+  venueName                String?                          @map("venue_name")
+  venueStreet              String?                          @map("venue_street")
+  venueStreetNumber        String?                          @map("venue_street_number")
+  venueCity                String?                          @map("venue_city")
+  venueZipCode             String?                          @map("venue_zip_code")
+  canceled                 Boolean                          @default(false)
+  stageId                  String?                          @map("stage_id")
+  subline                  String?
+  participationFrom        DateTime                         @default(now()) @map("participation_from")
+  areas                    AreaOfEvent[]
+  documents                DocumentOfEvent[]
+  types                    TypeOfEvent[]
+  experienceLevel          ExperienceLevel?                 @relation("experience_level_of_event", fields: [experienceLevelId], references: [id])
+  parentEvent              Event?                           @relation("parent_of_event", fields: [parentEventId], references: [id], onDelete: Cascade)
+  childEvents              Event[]                          @relation("parent_of_event")
+  stage                    Stage?                           @relation("stage_of_event", fields: [stageId], references: [id])
+  focuses                  FocusOfEvent[]
+  participants             ParticipantOfEvent[]
+  responsibleOrganizations ResponsibleOrganizationOfEvent[]
+  speakers                 SpeakerOfEvent[]
+  tags                     TagOfEvent[]
+  targetGroups             TargetGroupOfEvent[] // Legacy
+  eventTargetGroups        EventTargetGroupOfEvent[]
+  teamMembers              TeamMemberOfEvent[]
+  waitingList              WaitingParticipantOfEvent[]
+  eventVisibility          EventVisibility?
+  admins                   AdminOfEvent[]
+  abuseReports             EventAbuseReport[]               @relation("event_of_event_abuse_report")
+
+  filterVector Unsupported("tsvector")? @map("filter_vector")
+
+  @@index([filterVector], type: Gin)
+  @@map("events")
+}
+
+model EventVisibility {
+  id                       String  @id @default(uuid())
+  name                     Boolean @default(true)
+  slug                     Boolean @default(true)
+  startTime                Boolean @default(true) @map("start_time")
+  endTime                  Boolean @default(true) @map("end_time")
+  parentEventId            Boolean @default(true) @map("parent_event_id")
+  description              Boolean @default(true)
+  descriptionRTEState      Boolean @default(false) @map("description_rte_state")
+  published                Boolean @default(true)
+  createdAt                Boolean @default(true) @map("created_at")
+  updatedAt                Boolean @default(true) @map("updated_at")
+  experienceLevelId        Boolean @default(true) @map("experience_level_id")
+  background               Boolean @default(true) // legacy
+  backgroundImage          Boolean @default(true) @map("background_image")
+  backgroundImageId        Boolean @default(true) @map("background_image_id")
+  conferenceLink           Boolean @default(true) @map("conference_link")
+  conferenceCode           Boolean @default(true) @map("conference_code")
+  participantLimit         Boolean @default(true) @map("participant_limit")
+  participationUntil       Boolean @default(true) @map("participation_until")
+  venueName                Boolean @default(true) @map("venue_name")
+  venueStreet              Boolean @default(true) @map("venue_street")
+  venueStreetNumber        Boolean @default(true) @map("venue_street_number")
+  venueCity                Boolean @default(true) @map("venue_city")
+  venueZipCode             Boolean @default(true) @map("venue_zip_code")
+  canceled                 Boolean @default(true)
+  stageId                  Boolean @default(true) @map("stage_id")
+  subline                  Boolean @default(true)
+  participationFrom        Boolean @default(true) @map("participation_from")
+  areas                    Boolean @default(true)
+  documents                Boolean @default(true)
+  types                    Boolean @default(true)
+  experienceLevel          Boolean @default(true)
+  parentEvent              Boolean @default(true)
+  childEvents              Boolean @default(true)
+  stage                    Boolean @default(true)
+  focuses                  Boolean @default(true)
+  participants             Boolean @default(false)
+  responsibleOrganizations Boolean @default(true)
+  speakers                 Boolean @default(true)
+  tags                     Boolean @default(true)
+  targetGroups             Boolean @default(true) // legacy
+  eventTargetGroups        Boolean @default(true)
+  teamMembers              Boolean @default(true)
+  admins                   Boolean @default(false)
+  waitingList              Boolean @default(false)
+  abuseReports             Boolean @default(false)
+  event                    Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId                  String  @unique
+
+  @@map("event_visibilities")
+}
+
+model EventAbuseReport {
+  id         String                     @id @default(uuid())
+  title      String
+  status     AbuseReportStatus          @default(open)
+  createdAt  DateTime                   @default(now()) @map("created_at")
+  updatedAt  DateTime                   @updatedAt @map("updated_at")
+  reporter   Profile                    @relation("reporter_of_event_abuse_report", fields: [reporterId], references: [id])
+  reporterId String                     @map("reporter_id")
+  event      Event                      @relation("event_of_event_abuse_report", fields: [eventId], references: [id])
+  eventId    String                     @map("event_id")
+  reasons    EventAbuseReportReason[]
+  revisions  EventAbuseReportRevision[]
+
+  @@map("event_abuse_reports")
+}
+
+model EventAbuseReportReason {
+  id                 String            @id @default(uuid())
+  description        String
+  status             AbuseReportStatus @default(open)
+  eventAbuseReport   EventAbuseReport  @relation(fields: [eventAbuseReportId], references: [id])
+  eventAbuseReportId String            @map("event_abuse_report_id")
+  createdAt          DateTime          @default(now()) @map("created_at")
+  updatedAt          DateTime          @updatedAt @map("updated_at")
+
+  @@map("event_abuse_report_reasons")
+}
+
+model EventAbuseReportReasonSuggestion {
+  id          String @id @default(uuid())
+  slug        String @unique
+  description String
+
+  @@map("event_abuse_report_reason_suggestions")
+}
+
+model EventAbuseReportRevision {
+  id                 String           @id @default(uuid())
+  revisor            String
+  log                String
+  createdAt          DateTime         @default(now()) @map("created_at")
+  eventAbuseReport   EventAbuseReport @relation(fields: [eventAbuseReportId], references: [id])
+  eventAbuseReportId String
+
+  @@map("event_abuse_report_revisions")
+}
+
+model ResponsibleOrganizationOfEvent {
+  eventId        String       @map("event_id")
+  organizationId String       @map("organization_id")
+  event          Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, organizationId])
+  @@map("responsible_organizations_of_events")
+}
+
+model DocumentOfEvent {
+  eventId    String   @map("event_id")
+  documentId String   @map("document_id")
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, documentId])
+  @@map("documents_of_events")
+}
+
+model AreaOfEvent {
+  eventId String @map("event_id")
+  areaId  String @map("area_id")
+  area    Area   @relation(fields: [areaId], references: [id], onDelete: Cascade)
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, areaId])
+  @@map("areas_of_events")
+}
+
+model TagOfEvent {
+  tagId     String   @map("tag_id")
+  eventId   String   @map("event_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  tag       Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([tagId, eventId])
+  @@map("tags_of_events")
+}
+
+model TypeOfEvent {
+  eventTypeId String    @map("event_type_id")
+  eventId     String    @map("event_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  event       Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventType   EventType @relation(fields: [eventTypeId], references: [id], onDelete: Cascade)
+
+  @@id([eventTypeId, eventId])
+  @@map("event_types_of_events")
+}
+
+model FocusOfEvent {
+  eventId String @map("event_id")
+  focusId String @map("focus_id")
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  focus   Focus  @relation(fields: [focusId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, focusId])
+  @@map("focuses_on_events")
+}
+
+model TeamMemberOfEvent {
+  eventId         String  @map("event_id")
+  profileId       String  @map("profile_id")
+  isPrivileged    Boolean @default(false) // legacy
+  responsibileFor String? // legacy
+  event           Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  profile         Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, profileId])
+  @@map("team_members_of_events")
+}
+
+model ParticipantOfEvent {
+  profileId String   @map("profile_id")
+  eventId   String   @map("event_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@id([profileId, eventId])
+  @@map("participants_of_events")
+}
+
+model WaitingParticipantOfEvent {
+  profileId String   @map("profile_id")
+  eventId   String   @map("event_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@id([profileId, eventId])
+  @@map("waiting_participants_of_events")
+}
+
+model SpeakerOfEvent {
+  profileId String   @map("profile_id")
+  eventId   String   @map("event_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@id([profileId, eventId])
+  @@map("speakers_of_events")
+}
+
+model AdminOfEvent {
+  profileId String   @map("profile_id")
+  eventId   String   @map("event_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@id([profileId, eventId])
+  @@map("admins_of_events")
+}
+
+model State {
+  agsPrefix String     @unique
+  name      String     @unique
+  districts District[]
+  areas     Area[]
+}
+
+model District {
+  ags            String       @unique
+  name           String
+  stateAgsPrefix String
+  type           DistrictType
+  state          State        @relation(fields: [stateAgsPrefix], references: [agsPrefix])
+
+  @@unique([name, stateAgsPrefix])
+}
+
+model Area {
+  id                   String                 @id @default(uuid())
+  name                 String
+  slug                 String                 @unique
+  type                 AreaType
+  stateId              String?
+  state                State?                 @relation(fields: [stateId], references: [agsPrefix])
+  events               AreaOfEvent[]
+  AreasOnOrganizations AreasOnOrganizations[]
+  AreasOnProfiles      AreasOnProfiles[]
+  AreasOnProjects      AreasOnProjects[]
+  AreasOnFundings      AreasOnFundings[]
+
+  @@map("areas")
+}
+
+model Offer {
+  id                 String               @id @default(uuid())
+  slug               String               @unique
+  title              String               @unique
+  description        String?
+  OffersOnProfiles   OffersOnProfiles[]
+  SeekingsOnProfiles SeekingsOnProfiles[]
+
+  @@map("offer")
+}
+
+model OrganizationType {
+  id            String                             @id @default(uuid())
+  slug          String                             @unique
+  title         String                             @unique
+  description   String?
+  organizations OrganizationTypesOnOrganizations[]
+
+  @@map("organization_types")
+}
+
+model NetworkType {
+  id            String                        @id @default(uuid())
+  slug          String                        @unique
+  organizations NetworkTypesOnOrganizations[]
+
+  @@map("network_types")
+}
+
+model Focus {
+  id            String                   @id @default(uuid())
+  slug          String                   @unique
+  title         String                   @unique
+  description   String?
+  events        FocusOfEvent[]
+  organizations FocusesOnOrganizations[]
+
+  @@map("focuses")
+}
+
+model EventTargetGroupOfEvent {
+  eventTargetGroupId String           @map("event_target_group_id")
+  eventId            String           @map("event_id")
+  createdAt          DateTime         @default(now()) @map("created_at")
+  event              Event            @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventTargetGroup   EventTargetGroup @relation(fields: [eventTargetGroupId], references: [id], onDelete: Cascade)
+
+  @@id([eventTargetGroupId, eventId])
+  @@map("event_target_groups_of_events")
+}
+
+model ProjectTargetGroupOfProject {
+  projectTargetGroupId String             @map("project_target_group_id")
+  projectId            String             @map("project_id")
+  createdAt            DateTime           @default(now()) @map("created_at")
+  project              Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectTargetGroup   ProjectTargetGroup @relation(fields: [projectTargetGroupId], references: [id], onDelete: Cascade)
+
+  @@id([projectTargetGroupId, projectId])
+  @@map("project_target_groups_of_projects")
+}
+
+model EventTargetGroup {
+  id          String                    @id @default(uuid())
+  slug        String                    @unique
+  title       String                    @unique
+  description String?
+  events      EventTargetGroupOfEvent[]
+
+  @@map("event_target_groups")
+}
+
+model ProjectTargetGroup {
+  id          String                        @id @default(uuid())
+  slug        String                        @unique
+  title       String                        @unique
+  description String?
+  projects    ProjectTargetGroupOfProject[]
+
+  @@map("project_target_groups")
+}
+
+model TargetGroupOfEvent {
+  // legacy: Whole model
+  targetGroupId String      @map("target_group_id")
+  eventId       String      @map("event_id")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  event         Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  targetGroup   TargetGroup @relation(fields: [targetGroupId], references: [id], onDelete: Cascade)
+
+  @@id([targetGroupId, eventId])
+  @@map("target_groups_of_events")
+}
+
+model TargetGroupOfProject {
+  // legacy: Whole model
+  targetGroupId String      @map("target_group_id")
+  projectId     String      @map("project_id")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  project       Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  targetGroup   TargetGroup @relation(fields: [targetGroupId], references: [id], onDelete: Cascade)
+
+  @@id([targetGroupId, projectId])
+  @@map("target_groups_of_projects")
+}
+
+model TargetGroup {
+  // Legacy: whole model
+  id          String                 @id @default(uuid())
+  referenceId Int                    @unique
+  slug        String                 @unique
+  title       String                 @unique
+  description String?
+  events      TargetGroupOfEvent[]
+  projects    TargetGroupOfProject[]
+
+  @@map("target_groups")
+}
+
+model SpecialTargetGroup {
+  id          String                        @id @default(uuid())
+  slug        String                        @unique
+  title       String                        @unique
+  description String?
+  projects    SpecialTargetGroupOfProject[]
+
+  @@map("special_target_groups")
+}
+
+model Format {
+  id          String            @id @default(uuid())
+  slug        String            @unique
+  title       String            @unique
+  description String?
+  projects    FormatOfProject[]
+
+  @@map("formats")
+}
+
+model Financing {
+  id          String               @id @default(uuid())
+  slug        String               @unique
+  title       String               @unique
+  description String?
+  projects    FinancingOfProject[]
+
+  @@map("financings")
+}
+
+model ExperienceLevel {
+  id          String  @id @default(uuid())
+  title       String  @unique
+  referenceId Int     @unique
+  slug        String  @unique
+  description String?
+  events      Event[] @relation("experience_level_of_event")
+
+  @@map("experience_levels")
+}
+
+model EventType {
+  id          String        @id @default(uuid())
+  title       String        @unique
+  referenceId Int           @unique
+  slug        String        @unique
+  description String?
+  events      TypeOfEvent[]
+
+  @@map("event_types")
+}
+
+model Tag {
+  id          String       @id @default(uuid())
+  slug        String       @unique
+  referenceId Int          @unique
+  title       String       @unique
+  description String?
+  events      TagOfEvent[]
+
+  @@map("tags")
+}
+
+model Stage {
+  id          String  @id @default(uuid())
+  title       String  @unique
+  slug        String  @unique
+  description String?
+  events      Event[] @relation("stage_of_event")
+
+  @@map("stages")
+}
+
+model Document {
+  id          String              @id @default(uuid())
+  path        String
+  mimeType    String              @map("mime_type")
+  credits     String?
+  title       String?
+  description String?
+  createdAt   DateTime            @default(now()) @map("created_at")
+  filename    String
+  sizeInMB    Float               @map("size_in_mb")
+  updatedAt   DateTime            @default(now()) @updatedAt @map("updated_at")
+  extension   String
+  events      DocumentOfEvent[]
+  projects    DocumentOfProject[]
+
+  @@map("documents")
+}
+
+model Project {
+  id                                   String                             @id @default(uuid())
+  name                                 String
+  subline                              String?
+  slug                                 String                             @unique
+  logo                                 String?
+  background                           String? // legacy
+  backgroundImage                      Image?                             @relation(fields: [backgroundImageId], references: [id], onDelete: SetNull)
+  backgroundImageId                    String?                            @map("background_image_id")
+  headline                             String?
+  excerpt                              String?
+  description                          String? // legacy
+  furtherDescription                   String?                            @map("further_description")
+  furtherDescriptionRTEState           String?                            @map("further_description_rte_state")
+  email                                String?
+  phone                                String?
+  website                              String?
+  contactName                          String?                            @map("contact_name")
+  street                               String?
+  streetNumber                         String?                            @map("street_number")
+  streetNumberAddition                 String?                            @map("street_number_addition")
+  zipCode                              String?                            @map("zip_code")
+  facebook                             String?
+  linkedin                             String?
+  twitter                              String?
+  youtube                              String?
+  instagram                            String?
+  xing                                 String?
+  mastodon                             String?
+  tiktok                               String?
+  createdAt                            DateTime                           @default(now()) @map("created_at")
+  updatedAt                            DateTime                           @default(now()) @updatedAt @map("updated_at")
+  published                            Boolean                            @default(false)
+  city                                 String?
+  idea                                 String?
+  ideaRTEState                         String?                            @map("idea_rte_state")
+  goals                                String?
+  goalsRTEState                        String?                            @map("goals_rte_state")
+  implementation                       String?
+  implementationRTEState               String?                            @map("implementation_rte_state")
+  targeting                            String?
+  targetingRTEState                    String?                            @map("targeting_rte_state")
+  hints                                String?
+  hintsRTEState                        String?                            @map("hints_rte_state")
+  video                                String?
+  videoSubline                         String?                            @map("video_subline")
+  jobFillings                          String?                            @map("job_fillings")
+  jobFillingsRTEState                  String?                            @map("job_fillings_rte_state")
+  furtherJobFillings                   String?                            @map("further_job_fillings")
+  furtherJobFillingsRTEState           String?                            @map("further_job_fillings_rte_state")
+  yearlyBudget                         String?                            @map("yearly_budget")
+  participantLimit                     String?                            @map("participant_limit")
+  targetGroupAdditions                 String?                            @map("target_group_additions")
+  furtherFinancings                    String?                            @map("further_financings")
+  furtherFinancingsRTEState            String?                            @map("further_financings_rte_state")
+  technicalRequirements                String?                            @map("technical_requirements")
+  technicalRequirementsRTEState        String?                            @map("technical_requirements_rte_state")
+  furtherTechnicalRequirements         String?                            @map("further_technical_requirements")
+  furtherTechnicalRequirementsRTEState String?                            @map("further_technical_requirements_rte_state")
+  roomSituation                        String?                            @map("room_situation")
+  roomSituationRTEState                String?                            @map("room_situation_rte_state")
+  furtherRoomSituation                 String?                            @map("further_room_situation")
+  furtherRoomSituationRTEState         String?                            @map("further_room_situation_rte_state")
+  timeframe                            String?
+  timeframeRTEState                    String?                            @map("timeframe_rte_state")
+  furtherDisciplines                   String[]                           @map("further_disciplines")
+  furtherFormats                       String[]                           @map("further_formats")
+  awards                               AwardOfProject[]
+  disciplines                          DisciplineOfProject[]
+  additionalDisciplines                AdditionalDisciplineOfProject[]
+  responsibleOrganizations             ResponsibleOrganizationOfProject[]
+  targetGroups                         TargetGroupOfProject[] // Legacy
+  projectTargetGroups                  ProjectTargetGroupOfProject[]
+  specialTargetGroups                  SpecialTargetGroupOfProject[]
+  formats                              FormatOfProject[]
+  financings                           FinancingOfProject[]
+  teamMembers                          TeamMemberOfProject[]
+  projectVisibility                    ProjectVisibility?
+  admins                               AdminOfProject[]
+  areas                                AreasOnProjects[]
+  documents                            DocumentOfProject[]
+  images                               ImageOfProject[]
+  abuseReports                         ProjectAbuseReport[]               @relation("project_of_project_abuse_report")
+
+  filterVector Unsupported("tsvector")? @map("filter_vector")
+
+  @@index([filterVector], type: Gin)
+  @@map("projects")
+}
+
+model ProjectVisibility {
+  id                                   String  @id @default(uuid())
+  name                                 Boolean @default(true)
+  slug                                 Boolean @default(true)
+  logo                                 Boolean @default(true)
+  background                           Boolean @default(true) // legacy
+  backgroundImage                      Boolean @default(true) @map("background_image")
+  backgroundImageId                    Boolean @default(true) @map("background_image_id")
+  headline                             Boolean @default(true)
+  subline                              Boolean @default(true)
+  excerpt                              Boolean @default(true)
+  description                          Boolean @default(true) // legacy
+  furtherDescription                   Boolean @default(true) @map("further_description")
+  furtherDescriptionRTEState           Boolean @default(false) @map("further_description_rte_state")
+  email                                Boolean @default(true)
+  phone                                Boolean @default(true)
+  website                              Boolean @default(true)
+  contactName                          Boolean @default(true) @map("contact_name")
+  street                               Boolean @default(true)
+  streetNumber                         Boolean @default(true) @map("street_number")
+  streetNumberAddition                 Boolean @default(true) @map("street_number_addition")
+  zipCode                              Boolean @default(true) @map("zip_code")
+  facebook                             Boolean @default(true)
+  linkedin                             Boolean @default(true)
+  twitter                              Boolean @default(true)
+  youtube                              Boolean @default(true)
+  instagram                            Boolean @default(true)
+  xing                                 Boolean @default(true)
+  mastodon                             Boolean @default(true)
+  tiktok                               Boolean @default(true)
+  createdAt                            Boolean @default(true) @map("created_at")
+  updatedAt                            Boolean @default(true) @map("updated_at")
+  published                            Boolean @default(true)
+  city                                 Boolean @default(true)
+  idea                                 Boolean @default(true)
+  ideaRTEState                         Boolean @default(false) @map("idea_rte_state")
+  goals                                Boolean @default(true)
+  goalsRTEState                        Boolean @default(false) @map("goals_rte_state")
+  implementation                       Boolean @default(true)
+  implementationRTEState               Boolean @default(false) @map("implementation_rte_state")
+  targeting                            Boolean @default(true)
+  targetingRTEState                    Boolean @default(false) @map("targeting_rte_state")
+  hints                                Boolean @default(true)
+  hintsRTEState                        Boolean @default(false) @map("hints_rte_state")
+  video                                Boolean @default(true)
+  videoSubline                         Boolean @default(true)
+  participantLimit                     Boolean @default(true) @map("participant_limit")
+  timeframe                            Boolean @default(true)
+  timeframeRTEState                    Boolean @default(false) @map("timeframe_rte_state")
+  jobFillings                          Boolean @default(true) @map("job_fillings")
+  jobFillingsRTEState                  Boolean @default(false) @map("job_fillings_rte_state")
+  furtherJobFillings                   Boolean @default(true) @map("further_job_fillings")
+  furtherJobFillingsRTEState           Boolean @default(false) @map("further_job_fillings_rte_state")
+  yearlyBudget                         Boolean @default(true) @map("yearly_budget")
+  financings                           Boolean @default(true)
+  furtherFinancings                    Boolean @default(true) @map("further_financings")
+  furtherFinancingsRTEState            Boolean @default(false) @map("further_financings_rte_state")
+  technicalRequirements                Boolean @default(true) @map("technical_requirements")
+  technicalRequirementsRTEState        Boolean @default(false) @map("technical_requirements_rte_state")
+  furtherTechnicalRequirements         Boolean @default(true) @map("further_technical_requirements")
+  furtherTechnicalRequirementsRTEState Boolean @default(false) @map("further_technical_requirements_rte_state")
+  roomSituation                        Boolean @default(true) @map("room_situation")
+  roomSituationRTEState                Boolean @default(false) @map("room_situation_rte_state")
+  furtherRoomSituation                 Boolean @default(true) @map("further_room_situation")
+  furtherRoomSituationRTEState         Boolean @default(false) @map("further_room_situation_rte_state")
+  furtherDisciplines                   Boolean @default(true) @map("further_disciplines")
+  targetGroupAdditions                 Boolean @default(true) @map("target_group_additions")
+  furtherFormats                       Boolean @default(true)
+  awards                               Boolean @default(true)
+  disciplines                          Boolean @default(true)
+  additionalDisciplines                Boolean @default(true) @map("additional_disciplines")
+  responsibleOrganizations             Boolean @default(true)
+  targetGroups                         Boolean @default(true) // Legacy
+  projectTargetGroups                  Boolean @default(true)
+  specialTargetGroups                  Boolean @default(true)
+  formats                              Boolean @default(true)
+  teamMembers                          Boolean @default(true)
+  areas                                Boolean @default(true)
+  documents                            Boolean @default(true)
+  images                               Boolean @default(true)
+  admins                               Boolean @default(false)
+  abuseReports                         Boolean @default(false)
+  project                              Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId                            String  @unique
+
+  @@map("project_visibilities")
+}
+
+model ProjectAbuseReport {
+  id         String                       @id @default(uuid())
+  title      String
+  status     AbuseReportStatus            @default(open)
+  createdAt  DateTime                     @default(now()) @map("created_at")
+  updatedAt  DateTime                     @updatedAt @map("updated_at")
+  reporter   Profile                      @relation("reporter_of_project_abuse_report", fields: [reporterId], references: [id])
+  reporterId String                       @map("reporter_id")
+  project    Project                      @relation("project_of_project_abuse_report", fields: [projectId], references: [id])
+  projectId  String                       @map("project_id")
+  reasons    ProjectAbuseReportReason[]
+  revisions  ProjectAbuseReportRevision[]
+
+  @@map("project_abuse_reports")
+}
+
+model ProjectAbuseReportReason {
+  id                   String             @id @default(uuid())
+  description          String
+  status               AbuseReportStatus  @default(open)
+  projectAbuseReport   ProjectAbuseReport @relation(fields: [projectAbuseReportId], references: [id])
+  projectAbuseReportId String             @map("project_abuse_report_id")
+  createdAt            DateTime           @default(now()) @map("created_at")
+  updatedAt            DateTime           @updatedAt @map("updated_at")
+
+  @@map("project_abuse_report_reasons")
+}
+
+model ProjectAbuseReportReasonSuggestion {
+  id          String @id @default(uuid())
+  slug        String @unique
+  description String
+
+  @@map("project_abuse_report_reason_suggestions")
+}
+
+model ProjectAbuseReportRevision {
+  id                   String             @id @default(uuid())
+  revisor              String
+  log                  String
+  createdAt            DateTime           @default(now()) @map("created_at")
+  projectAbuseReport   ProjectAbuseReport @relation(fields: [projectAbuseReportId], references: [id])
+  projectAbuseReportId String
+
+  @@map("project_abuse_report_revisions")
+}
+
+model Discipline {
+  id          String                @id @default(uuid())
+  referenceId Int                   @unique
+  title       String                @unique
+  slug        String                @unique
+  description String?
+  projects    DisciplineOfProject[]
+
+  @@map("disciplines")
+}
+
+model AdditionalDiscipline {
+  id          String                          @id @default(uuid())
+  title       String                          @unique
+  slug        String                          @unique
+  description String?
+  projects    AdditionalDisciplineOfProject[]
+
+  @@map("additional_disciplines")
+}
+
+model Award {
+  id         String           @id @default(uuid())
+  title      String
+  slug       String           @unique
+  logo       String
+  subline    String
+  date       DateTime         @default(now())
+  shortTitle String?          @map("short_title")
+  projects   AwardOfProject[]
+
+  @@map("awards")
+}
+
+model SpecialTargetGroupOfProject {
+  specialTargetGroupId String             @map("special_target_group_id")
+  projectId            String             @map("project_id")
+  createdAt            DateTime           @default(now()) @map("created_at")
+  project              Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  specialTargetGroup   SpecialTargetGroup @relation(fields: [specialTargetGroupId], references: [id], onDelete: Cascade)
+
+  @@id([specialTargetGroupId, projectId])
+  @@map("special_target_groups_of_projects")
+}
+
+model FormatOfProject {
+  formatId  String   @map("format_id")
+  projectId String   @map("project_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  format    Format   @relation(fields: [formatId], references: [id], onDelete: Cascade)
+
+  @@id([formatId, projectId])
+  @@map("formats_of_projects")
+}
+
+model FinancingOfProject {
+  financingId String    @map("financing_id")
+  projectId   String    @map("project_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  financing   Financing @relation(fields: [financingId], references: [id], onDelete: Cascade)
+
+  @@id([financingId, projectId])
+  @@map("financings_of_projects")
+}
+
+model DisciplineOfProject {
+  disciplineId String     @map("discipline_id")
+  projectId    String     @map("project_id")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  discipline   Discipline @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
+  project      Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@id([disciplineId, projectId])
+  @@map("disciplines_of_projects")
+}
+
+model AdditionalDisciplineOfProject {
+  additionalDisciplineId String               @map("additional_discipline_id")
+  projectId              String               @map("project_id")
+  createdAt              DateTime             @default(now()) @map("created_at")
+  additionalDiscipline   AdditionalDiscipline @relation(fields: [additionalDisciplineId], references: [id], onDelete: Cascade)
+  project                Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@id([additionalDisciplineId, projectId])
+  @@map("additional_disciplines_of_projects")
+}
+
+model AwardOfProject {
+  awardId   String   @map("award_id")
+  projectId String   @map("project_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  award     Award    @relation(fields: [awardId], references: [id], onDelete: Cascade)
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@id([awardId, projectId])
+  @@map("awards_of_projects")
+}
+
+model AreasOnProjects {
+  projectId String  @map("project_id")
+  areaId    String  @map("area_id")
+  area      Area    @relation(fields: [areaId], references: [id], onDelete: Cascade)
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, areaId])
+  @@map("areas_on_projects")
+}
+
+model AreasOnFundings {
+  fundingId String  @map("funding_id")
+  areaId    String  @map("area_id")
+  area      Area    @relation(fields: [areaId], references: [id], onDelete: Cascade)
+  funding   Funding @relation(fields: [fundingId], references: [id], onDelete: Cascade)
+
+  @@id([fundingId, areaId])
+  @@map("areas_on_fundings")
+}
+
+model ResponsibleOrganizationOfProject {
+  projectId      String       @map("project_id")
+  organizationId String       @map("organization_id")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project        Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, organizationId])
+  @@map("responsible_organizations_of_projects")
+}
+
+model TeamMemberOfProject {
+  profileId    String   @map("pprofile_id")
+  projectId    String   @map("project_id")
+  isPrivileged Boolean  @default(false) @map("is_privileged") // legacy
+  createdAt    DateTime @default(now()) @map("created_at")
+  profile      Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@id([profileId, projectId])
+  @@map("team_members_of_projects")
+}
+
+model DocumentOfProject {
+  projectId  String   @map("project_id")
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  documentId String   @map("document_id")
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, documentId])
+  @@map("documents_of_projects")
+}
+
+model ImageOfProject {
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String  @map("project_id")
+  imageId   String  @map("image_id")
+  image     Image   @relation(fields: [imageId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, imageId])
+  @@map("images_of_projects")
+}
+
+model Image {
+  id           String           @id @default(uuid())
+  path         String
+  mimeType     String           @map("mime_type")
+  credits      String?
+  title        String?
+  sizeInMB     Float            @map("size_in_mb")
+  filename     String
+  description  String?
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @default(now()) @updatedAt @map("updated_at")
+  extension    String
+  Profile      Profile[]
+  Organization Organization[]
+  Event        Event[]
+  Project      Project[]
+  projects     ImageOfProject[]
+
+  @@map("image")
+}
+
+model AdminOfProject {
+  profileId String   @map("profile_id")
+  projectId String   @map("project_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@id([profileId, projectId])
+  @@map("admins_of_projects")
+}
+
+model Funding {
+  id               String                              @id @default(uuid())
+  url              String                              @unique
+  title            String
+  funders          FundersOnFundings[]
+  types            FundingTypesOnFundings[]
+  regions          AreasOnFundings[]
+  areas            FundingAreasOnFundings[]
+  eligibleEntities FundingEligibleEntitiesOnFundings[]
+  sourceFunders    String[]
+  sourceTypes      String[]
+  sourceRegions    String[]
+  sourceAreas      String[]
+  sourceEntities   String[]
+  createdAt        DateTime                            @default(now()) @map("created_at")
+  checksum         String? // legacy
+
+  filterVector Unsupported("tsvector")? @map("filter_vector")
+
+  @@index([filterVector], type: Gin)
+  @@map("fundings")
+}
+
+model Funder {
+  id       String              @id @default(uuid())
+  title    String              @unique
+  slug     String              @unique
+  fundings FundersOnFundings[]
+
+  @@map("funders")
+}
+
+model FundersOnFundings {
+  fundingId String   @map("funding_id")
+  funderId  String   @map("funder_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  funding   Funding  @relation(fields: [fundingId], references: [id], onDelete: Cascade)
+  funder    Funder   @relation(fields: [funderId], references: [id], onDelete: Cascade)
+
+  @@id([fundingId, funderId])
+  @@map("funders_on_fundings")
+}
+
+model FundingType {
+  id       String                   @id @default(uuid())
+  title    String                   @unique
+  slug     String                   @unique
+  fundings FundingTypesOnFundings[]
+
+  @@map("funding_types")
+}
+
+model FundingTypesOnFundings {
+  fundingId String      @map("funding_id")
+  typeId    String      @map("type_id")
+  createdAt DateTime    @default(now()) @map("created_at")
+  funding   Funding     @relation(fields: [fundingId], references: [id], onDelete: Cascade)
+  type      FundingType @relation(fields: [typeId], references: [id], onDelete: Cascade)
+
+  @@id([fundingId, typeId])
+  @@map("funding_types_on_fundings")
+}
+
+model FundingArea {
+  id       String                   @id @default(uuid())
+  title    String                   @unique
+  slug     String                   @unique
+  fundings FundingAreasOnFundings[]
+
+  @@map("funding_areas")
+}
+
+model FundingAreasOnFundings {
+  fundingId String      @map("funding_id")
+  areaId    String      @map("area_id")
+  createdAt DateTime    @default(now()) @map("created_at")
+  funding   Funding     @relation(fields: [fundingId], references: [id], onDelete: Cascade)
+  area      FundingArea @relation(fields: [areaId], references: [id], onDelete: Cascade)
+
+  @@id([fundingId, areaId])
+  @@map("funding_areas_on_fundings")
+}
+
+model FundingEligibleEntity {
+  id       String                              @id @default(uuid())
+  title    String                              @unique
+  slug     String                              @unique
+  fundings FundingEligibleEntitiesOnFundings[]
+
+  @@map("funding_eligible_entities")
+}
+
+model FundingEligibleEntitiesOnFundings {
+  fundingId String                @map("funding_id")
+  entityId  String                @map("entity_id")
+  createdAt DateTime              @default(now()) @map("created_at")
+  funding   Funding               @relation(fields: [fundingId], references: [id], onDelete: Cascade)
+  entity    FundingEligibleEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  @@id([fundingId, entityId])
+  @@map("funding_eligible_entities_on_fundings")
+}
+
+enum DistrictType {
+  land
+  urban
+
+  @@map("district_types")
+}
+
+enum AreaType {
+  global
+  country
+  state
+  district
+
+  @@map("area_types")
+}
+
+enum AbuseReportStatus {
+  open
+  accepted
+  rejected
+
+  @@map("abuse_report_status")
+}
+
+enum OrganizationRole {
+  admin
+  member
+
+  @@map("organization_roles")
+}
+
+enum JoinStatus {
+  pending
+  accepted
+  rejected
+  canceled
+
+  @@map("join_statuses")
+}
+
+model InviteForProfileToJoinOrganization {
+  profileId      String           @map("profile_id")
+  profile        Profile          @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  organizationId String           @map("organization_id")
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  role           OrganizationRole
+  status         JoinStatus
+  updatedAt      DateTime         @default(now()) @updatedAt @map("updated_at")
+  createdAt      DateTime         @default(now()) @map("created_at")
+
+  @@id([profileId, organizationId, role])
+  @@map("invites_for_profiles_to_join_organizations")
+}
+
+model RequestToOrganizationToAddProfile {
+  profileId      String       @map("profile_id")
+  profile        Profile      @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  organizationId String       @map("organization_id")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  status         JoinStatus
+  updatedAt      DateTime     @default(now()) @updatedAt @map("updated_at")
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  @@id([profileId, organizationId])
+  @@map("requests_to_organizations_to_add_profiles")
+}
+
+model InviteForOrganizationToJoinNetwork {
+  organizationId String       @map("organization_id")
+  organization   Organization @relation(name: "received_invites", fields: [organizationId], references: [id], onDelete: Cascade)
+  networkId      String       @map("network_id")
+  network        Organization @relation(name: "sent_invites", fields: [networkId], references: [id], onDelete: Cascade)
+  status         JoinStatus
+  updatedAt      DateTime     @default(now()) @updatedAt @map("updated_at")
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  @@id([organizationId, networkId])
+  @@map("invites_for_organizations_to_join_networks")
+}
+
+model RequestToNetworkToAddOrganization {
+  networkId      String       @map("network_id")
+  network        Organization @relation(name: "received_requests", fields: [networkId], references: [id], onDelete: Cascade)
+  organizationId String       @map("organization_id")
+  organization   Organization @relation(name: "sent_requests", fields: [organizationId], references: [id], onDelete: Cascade)
+  status         JoinStatus
+  updatedAt      DateTime     @default(now()) @updatedAt @map("updated_at")
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  @@id([networkId, organizationId])
+  @@map("requests_to_networks_to_add_organizations")
+}
