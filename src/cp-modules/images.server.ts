@@ -1,6 +1,19 @@
 import { createHmac } from "crypto";
 
-type ResizeType = "fit" | "fill" | "crop";
+export type ResizeType = "fit" | "fill" | "crop";
+
+export const GravityType = {
+  center: "ce",
+  north: "no",
+  south: "so",
+  east: "ea",
+  west: "we",
+  northEast: "noea",
+  northWest: "nowe",
+  southEast: "soea",
+  southWest: "sowe",
+  smart: "sm",
+};
 
 function encodeUrlCharacters(url: string) {
   const encodedUrl = url
@@ -57,9 +70,13 @@ export function getImageURL(
   const imgOptions: { [key: string]: string } = {};
 
   // create resize part of the url
-  const { type, width, height, enlarge = true } = resize || {};
   if (typeof resize !== "undefined") {
-    imgOptions.rs = [type, width, height, enlarge ? 1 : 0].join(":");
+    imgOptions.rs = [
+      resize.type,
+      resize.width,
+      resize.height,
+      resize.enlarge ? 1 : 0,
+    ].join(":");
   }
 
   imgOptions.g = gravity;

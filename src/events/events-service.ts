@@ -1,8 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
-import { prismaClient } from "../cp-modules/prisma.server";
+import { prismaClient } from "../cp-modules/prisma";
 import type { Request } from "express";
 import { decorate } from "../lib/matomoUrlDecorator";
-import { getBaseURL } from "../lib/utils";
+import { getBaseURL } from "../cp-modules/utils";
 import { filterEventByVisibility } from "../cp-modules/next-public-fields-filtering.server";
 import { getPublicURL } from "../cp-modules/storage.server";
 import { getImageURL } from "../cp-modules/images.server";
@@ -25,21 +25,12 @@ async function getEvents(request: Request, skip: number, take: number) {
       participantLimit: true,
       venueName: true,
       venueStreet: true,
-      venueStreetNumber: true,
       venueCity: true,
       venueZipCode: true,
+      venueLongitude: true,
+      venueLatitude: true,
       canceled: true,
       parentEventId: true,
-      areas: {
-        select: {
-          area: {
-            select: {
-              name: true,
-              slug: true,
-            },
-          },
-        },
-      },
       types: {
         select: {
           eventType: {
@@ -125,12 +116,12 @@ async function getEvents(request: Request, skip: number, take: number) {
           participantLimit: true,
           venueName: true,
           venueStreet: true,
-          venueStreetNumber: true,
           venueCity: true,
           venueZipCode: true,
+          venueLongitude: true,
+          venueLatitude: true,
           canceled: true,
           parentEventId: true,
-          areas: true,
           types: true,
           focuses: true,
           tags: true,
@@ -190,7 +181,7 @@ async function getEvents(request: Request, skip: number, take: number) {
 
       const url =
         baseURL !== undefined
-          ? decorate(request, `${baseURL}/event/${slug}`)
+          ? decorate(request, `${baseURL}/event/${slug}/detail/about`)
           : null;
 
       const enhancedResponsibleOrganizations = responsibleOrganizations.map(
@@ -208,7 +199,10 @@ async function getEvents(request: Request, skip: number, take: number) {
           const baseURL = getBaseURL(process.env.COMMUNITY_BASE_URL);
           const url =
             baseURL !== undefined
-              ? decorate(request, `${baseURL}/organization/${slug}`)
+              ? decorate(
+                  request,
+                  `${baseURL}/organization/${slug}/detail/about`
+                )
               : null;
           return {
             organization: {

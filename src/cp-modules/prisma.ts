@@ -1,8 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 
 declare global {
-  // TODO: fix type issue
-  // eslint-disable-next-line no-var
   var __prismaClient: PrismaClient | undefined;
 }
 
@@ -36,13 +34,14 @@ if (process.env.NODE_ENV === "production") {
   prismaClient = global.__prismaClient;
 }
 
-try {
-  // Removed the top-level await because module resolution is commonJS. In the app its es2022.
-  prismaClient.$connect();
-  console.log("prismaClient.$connect success");
-} catch (error) {
-  console.error("on prismaClient $connect", error);
-  throw error;
-}
+prismaClient
+  .$connect()
+  .then(() => {
+    console.log("prismaClient.$connect success");
+  })
+  .catch((error) => {
+    console.error("prismaClient $connect error", error);
+    throw error;
+  });
 
 export { prismaClient };

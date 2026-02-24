@@ -13,10 +13,10 @@ import {
 } from "tsoa";
 import { getImageURL } from "../cp-modules/images.server";
 import { decorate } from "../lib/matomoUrlDecorator";
-import { prismaClient } from "../cp-modules/prisma.server";
+import { prismaClient } from "../cp-modules/prisma";
 import { filterEventByVisibility } from "../cp-modules/next-public-fields-filtering.server";
 import { getPublicURL } from "../cp-modules/storage.server";
-import { getBaseURL } from "../lib/utils";
+import { getBaseURL } from "../cp-modules/utils";
 
 @Route("event")
 @Tags("Event")
@@ -69,21 +69,12 @@ export class EventController extends Controller {
         participantLimit: true,
         venueName: true,
         venueStreet: true,
-        venueStreetNumber: true,
         venueCity: true,
         venueZipCode: true,
+        venueLongitude: true,
+        venueLatitude: true,
         canceled: true,
         parentEventId: true,
-        areas: {
-          select: {
-            area: {
-              select: {
-                name: true,
-                slug: true,
-              },
-            },
-          },
-        },
         types: {
           select: {
             eventType: {
@@ -169,12 +160,12 @@ export class EventController extends Controller {
             participantLimit: true,
             venueName: true,
             venueStreet: true,
-            venueStreetNumber: true,
             venueCity: true,
             venueZipCode: true,
+            venueLongitude: true,
+            venueLatitude: true,
             canceled: true,
             parentEventId: true,
-            areas: true,
             types: true,
             focuses: true,
             tags: true,
@@ -214,7 +205,7 @@ export class EventController extends Controller {
       );
     }
 
-    const { background, slug: projectSlug, ...rest } = event;
+    const { background, slug: eventSlug, ...rest } = event;
     let publicBackground: string | null = null;
     if (authClient !== undefined) {
       if (background !== null) {
@@ -228,7 +219,7 @@ export class EventController extends Controller {
 
     const url =
       baseURL !== undefined
-        ? decorate(request, `${baseURL}/event/${projectSlug}`)
+        ? decorate(request, `${baseURL}/event/${eventSlug}/detail/about`)
         : null;
 
     const enhancedEvent = {

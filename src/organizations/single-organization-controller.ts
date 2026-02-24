@@ -13,10 +13,10 @@ import {
 } from "tsoa";
 import { getImageURL } from "../cp-modules/images.server";
 import { decorate } from "../lib/matomoUrlDecorator";
-import { prismaClient } from "../cp-modules/prisma.server";
+import { prismaClient } from "../cp-modules/prisma";
 import { filterOrganizationByVisibility } from "../cp-modules/next-public-fields-filtering.server";
 import { getPublicURL } from "../cp-modules/storage.server";
-import { getBaseURL } from "../lib/utils";
+import { getBaseURL } from "../cp-modules/utils";
 
 @Route("organization")
 @Tags("Organization")
@@ -63,9 +63,10 @@ export class OrganizationController extends Controller {
         background: true,
         bio: true,
         street: true,
-        streetNumber: true,
         city: true,
         zipCode: true,
+        longitude: true,
+        latitude: true,
         supportedBy: true,
         areas: {
           select: {
@@ -106,9 +107,10 @@ export class OrganizationController extends Controller {
             background: true,
             bio: true,
             street: true,
-            streetNumber: true,
             city: true,
             zipCode: true,
+            longitude: true,
+            latitude: true,
             supportedBy: true,
             areas: true,
             types: true,
@@ -159,7 +161,10 @@ export class OrganizationController extends Controller {
 
     const url =
       baseURL !== undefined
-        ? decorate(request, `${baseURL}/organization/${organizationSlug}`)
+        ? decorate(
+            request,
+            `${baseURL}/organization/${organizationSlug}/detail/about`
+          )
         : null;
 
     const enhancedOrganization = {

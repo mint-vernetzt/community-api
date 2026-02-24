@@ -9,8 +9,9 @@ import {
   Request,
   Query,
   Res,
+  type TsoaResponse,
+  type ValidateError,
 } from "tsoa";
-import type { TsoaResponse, ValidateError } from "tsoa";
 import { getAllOrganizations } from "./organizations-service";
 import type { Request as ExpressRequest } from "express";
 
@@ -24,10 +25,11 @@ const exampleResponse = {
       background:
         "https://img.platform.org/public/url/of/organization/background",
       bio: "I am a <strong>bio</strong>",
-      street: "Freedom Road",
-      streetNumber: "22",
+      street: "Freedom Road 22",
       city: "City of Relief",
       zipCode: "12345",
+      longitude: "12.345678",
+      latitude: "98.7654321",
       supportedBy: [
         "Aung San Suu Kyi",
         "Rigoberta Menchú",
@@ -103,9 +105,10 @@ const exampleResponse = {
       background: null,
       bio: null,
       street: null,
-      streetNumber: null,
       city: null,
       zipCode: null,
+      longitude: null,
+      latitude: null,
       supportedBy: [],
       areas: [],
       types: [],

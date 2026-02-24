@@ -2,10 +2,10 @@ import { createClient } from "@supabase/supabase-js";
 import { type Request } from "express";
 import { getImageURL } from "../cp-modules/images.server";
 import { decorate } from "../lib/matomoUrlDecorator";
-import { prismaClient } from "../cp-modules/prisma.server";
+import { prismaClient } from "../cp-modules/prisma";
 import { filterProfileByVisibility } from "../cp-modules/next-public-fields-filtering.server";
 import { getPublicURL } from "../cp-modules/storage.server";
-import { getBaseURL } from "../lib/utils";
+import { getBaseURL } from "../cp-modules/utils";
 
 type Profiles = Awaited<ReturnType<typeof getProfiles>>;
 

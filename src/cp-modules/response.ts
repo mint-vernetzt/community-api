@@ -5,6 +5,8 @@
  * inspired by invariant from 'tiny-invariant' except will still include the
  * message in production.
  *
+ * Reused from epic stack: https://github.com/epicweb-dev/invariant
+ *
  * @example
  * invariant(typeof value === 'string', `value must be a string`)
  *
@@ -15,8 +17,6 @@
  * @throws {Error} if condition is falsey
  */
 export function invariant(
-  // TODO: fix type issue
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   condition: any,
   message: string | (() => string)
 ): asserts condition {
@@ -31,6 +31,8 @@ export function invariant(
  *
  * inspired by invariant from 'tiny-invariant'
  *
+ * Reused from epic stack: https://github.com/epicweb-dev/invariant
+ *
  * @example
  * invariantResponse(typeof value === 'string', `value must be a string`)
  *
@@ -41,8 +43,6 @@ export function invariant(
  * @throws {Response} if condition is falsey
  */
 export function invariantResponse(
-  // TODO: fix type issue
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   condition: any,
   message: string | (() => string),
   responseInit?: ResponseInit

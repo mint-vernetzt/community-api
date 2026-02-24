@@ -63,6 +63,8 @@ model Profile {
   abuseReports              ProfileAbuseReport[]                 @relation("profile_of_profile_abuse_report")
   joinOrganizationRequests  RequestToOrganizationToAddProfile[]
   joinOrganizationInvites   InviteForProfileToJoinOrganization[]
+  joinEventInvites          InviteForProfileToJoinEvent[]
+  claimOrganizationRequests OrganizationClaimRequest[]           @relation("claimer_of_organization_claim_request")
 
   filterVector Unsupported("tsvector")? @map("filter_vector")
 
@@ -124,8 +126,16 @@ model ProfileVisibility {
   abuseReports              Boolean @default(false)
   joinOrganizationRequests  Boolean @default(false)
   joinOrganizationInvites   Boolean @default(false)
+  claimOrganizationRequests Boolean @default(false)
 
   @@map("profile_visibilities")
+}
+
+model BannedProfile {
+  id       String @id
+  jsonData String @map("json_data")
+
+  @@map("banned_profiles")
 }
 
 model NotificationSettings {
@@ -220,8 +230,8 @@ model Organization {
   slug                   String                               @unique
   email                  String?
   phone                  String?
-  street                 String?
-  city                   String?
+  street                 String? // is now required -> String? is legacy
+  city                   String? // is now required -> String? is legacy
   website                String?
   logo                   String?
   background             String? // legacy
@@ -238,15 +248,21 @@ model Organization {
   publicFields           String[]                             @map("public_fields") // legacy
   quoteAuthor            String?                              @map("quote_author")
   quoteAuthorInformation String?                              @map("quote_author_information")
-  streetNumber           String?                              @map("street_number")
+  streetNumber           String?                              @map("street_number") // legacy
+  addressSupplement      String?                              @map("address_supplement")
   supportedBy            String[]                             @map("supported_by")
   updatedAt              DateTime                             @default(now()) @updatedAt @map("updated_at")
-  zipCode                String?                              @map("zip_code")
+  zipCode                String?                              @map("zip_code") // is now required -> String? is legacy
+  longitude              String?
+  latitude               String?
   instagram              String?
   youtube                String?
   mastodon               String?
   tiktok                 String?
   score                  Int                                  @default(0)
+  shadow                 Boolean                              @default(false)
+  shadowSource           String?                              @map("shadow_source")
+  claimRequests          OrganizationClaimRequest[]           @relation("organization_of_organization_claim_request")
   areas                  AreasOnOrganizations[]
   focuses                FocusesOnOrganizations[]
   networkMembers         MemberOfNetwork[]                    @relation("network")
@@ -276,11 +292,11 @@ model OrganizationVisibility {
   id                     String       @id @default(uuid())
   name                   Boolean      @default(true)
   slug                   Boolean      @default(true)
-  email                  Boolean      @default(false)
-  phone                  Boolean      @default(false)
+  email                  Boolean      @default(true)
+  phone                  Boolean      @default(true)
   street                 Boolean      @default(true)
   city                   Boolean      @default(true)
-  website                Boolean      @default(false)
+  website                Boolean      @default(true)
   logo                   Boolean      @default(true)
   background             Boolean      @default(true) // legacy
   backgroundImage        Boolean      @default(true) @map("background_image")
@@ -289,23 +305,29 @@ model OrganizationVisibility {
   linkedin               Boolean      @default(true)
   twitter                Boolean      @default(true)
   xing                   Boolean      @default(true)
-  bio                    Boolean      @default(false)
+  bio                    Boolean      @default(true)
   bioRTEState            Boolean      @default(false) @map("bio_rte_state")
   quote                  Boolean      @default(true)
   createdAt              Boolean      @default(true) @map("created_at")
   quoteAuthor            Boolean      @default(true) @map("quote_author")
   quoteAuthorInformation Boolean      @default(true) @map("quote_author_information")
-  streetNumber           Boolean      @default(true) @map("street_number")
+  streetNumber           Boolean      @default(true) @map("street_number") // legacy
+  addressSupplement      Boolean      @default(true) @map("address_supplement")
   supportedBy            Boolean      @default(true) @map("supported_by")
   updatedAt              Boolean      @default(true) @map("updated_at")
   zipCode                Boolean      @default(true) @map("zip_code")
+  longitude              Boolean      @default(true)
+  latitude               Boolean      @default(true)
   instagram              Boolean      @default(true)
   youtube                Boolean      @default(true)
   mastodon               Boolean      @default(true)
   tiktok                 Boolean      @default(true)
   score                  Boolean      @default(true)
+  shadow                 Boolean      @default(false)
+  shadowSource           Boolean      @default(false) @map("shadow_source")
+  claimRequests          Boolean      @default(false)
   areas                  Boolean      @default(true)
-  focuses                Boolean      @default(false)
+  focuses                Boolean      @default(true)
   networkMembers         Boolean      @default(true)
   memberOf               Boolean      @default(true)
   teamMembers            Boolean      @default(true)
@@ -321,6 +343,19 @@ model OrganizationVisibility {
   organizationId         String       @unique
 
   @@map("organization_visibilities")
+}
+
+model OrganizationClaimRequest {
+  status         ClaimStatus  @default(open)
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  claimer        Profile      @relation("claimer_of_organization_claim_request", fields: [claimerId], references: [id])
+  claimerId      String       @map("claimer_id")
+  organization   Organization @relation("organization_of_organization_claim_request", fields: [organizationId], references: [id])
+  organizationId String       @map("organization_id")
+
+  @@id([claimerId, organizationId])
+  @@map("organization_claim_requests")
 }
 
 model OrganizationAbuseReport {
@@ -445,53 +480,60 @@ model AreasOnOrganizations {
 }
 
 model Event {
-  id                       String                           @id @default(uuid())
-  name                     String
-  slug                     String                           @unique
-  startTime                DateTime                         @map("start_time")
-  endTime                  DateTime                         @map("end_time")
-  parentEventId            String?                          @map("parent_event_id")
-  description              String?
-  descriptionRTEState      String?                          @map("description_rte_state")
-  published                Boolean                          @default(false)
-  createdAt                DateTime                         @default(now()) @map("created_at")
-  updatedAt                DateTime                         @default(now()) @updatedAt @map("updated_at")
-  experienceLevelId        String?                          @map("experience_level_id")
-  background               String? // legacy
-  backgroundImage          Image?                           @relation(fields: [backgroundImageId], references: [id], onDelete: SetNull)
-  backgroundImageId        String?                          @map("background_image_id")
-  conferenceLink           String?                          @map("conference_link")
-  conferenceCode           String?                          @map("conference_code")
-  participantLimit         Int?                             @map("participant_limit")
-  participationUntil       DateTime                         @map("participation_until")
-  venueName                String?                          @map("venue_name")
-  venueStreet              String?                          @map("venue_street")
-  venueStreetNumber        String?                          @map("venue_street_number")
-  venueCity                String?                          @map("venue_city")
-  venueZipCode             String?                          @map("venue_zip_code")
-  canceled                 Boolean                          @default(false)
-  stageId                  String?                          @map("stage_id")
-  subline                  String?
-  participationFrom        DateTime                         @default(now()) @map("participation_from")
-  areas                    AreaOfEvent[]
-  documents                DocumentOfEvent[]
-  types                    TypeOfEvent[]
-  experienceLevel          ExperienceLevel?                 @relation("experience_level_of_event", fields: [experienceLevelId], references: [id])
-  parentEvent              Event?                           @relation("parent_of_event", fields: [parentEventId], references: [id], onDelete: Cascade)
-  childEvents              Event[]                          @relation("parent_of_event")
-  stage                    Stage?                           @relation("stage_of_event", fields: [stageId], references: [id])
-  focuses                  FocusOfEvent[]
-  participants             ParticipantOfEvent[]
-  responsibleOrganizations ResponsibleOrganizationOfEvent[]
-  speakers                 SpeakerOfEvent[]
-  tags                     TagOfEvent[]
-  targetGroups             TargetGroupOfEvent[] // Legacy
-  eventTargetGroups        EventTargetGroupOfEvent[]
-  teamMembers              TeamMemberOfEvent[]
-  waitingList              WaitingParticipantOfEvent[]
-  eventVisibility          EventVisibility?
-  admins                   AdminOfEvent[]
-  abuseReports             EventAbuseReport[]               @relation("event_of_event_abuse_report")
+  id                               String                           @id @default(uuid())
+  name                             String
+  slug                             String                           @unique
+  startTime                        DateTime                         @map("start_time")
+  endTime                          DateTime                         @map("end_time")
+  parentEventId                    String?                          @map("parent_event_id")
+  description                      String?
+  descriptionRTEState              String?                          @map("description_rte_state")
+  published                        Boolean                          @default(false)
+  createdAt                        DateTime                         @default(now()) @map("created_at")
+  updatedAt                        DateTime                         @default(now()) @updatedAt @map("updated_at")
+  experienceLevelId                String?                          @map("experience_level_id")
+  background                       String? // legacy
+  backgroundImage                  Image?                           @relation(fields: [backgroundImageId], references: [id], onDelete: SetNull)
+  backgroundImageId                String?                          @map("background_image_id")
+  conferenceLink                   String?                          @map("conference_link")
+  conferenceCode                   String?                          @map("conference_code")
+  participantLimit                 Int?                             @map("participant_limit")
+  participationUntil               DateTime                         @map("participation_until")
+  venueName                        String?                          @map("venue_name")
+  venueStreet                      String?                          @map("venue_street")
+  venueStreetNumber                String?                          @map("venue_street_number") // legacy
+  venueLatitude                    String?                          @map("venue_latitude")
+  venueLongitude                   String?                          @map("venue_longitude")
+  venueCity                        String?                          @map("venue_city")
+  venueZipCode                     String?                          @map("venue_zip_code")
+  accessibilityInformation         String?                          @map("accessibility_information")
+  accessibilityInformationRTEState String?                          @map("accessibility_information_rte_state")
+  privacyInformation               String?                          @map("privacy_information")
+  privacyInformationRTEState       String?                          @map("privacy_information_rte_state")
+  canceled                         Boolean                          @default(false)
+  stageId                          String?                          @map("stage_id")
+  subline                          String?
+  participationFrom                DateTime                         @default(now()) @map("participation_from")
+  areas                            AreaOfEvent[] // legacy
+  documents                        DocumentOfEvent[]
+  types                            TypeOfEvent[]
+  experienceLevel                  ExperienceLevel?                 @relation("experience_level_of_event", fields: [experienceLevelId], references: [id])
+  parentEvent                      Event?                           @relation("parent_of_event", fields: [parentEventId], references: [id], onDelete: Cascade)
+  childEvents                      Event[]                          @relation("parent_of_event")
+  stage                            Stage?                           @relation("stage_of_event", fields: [stageId], references: [id])
+  focuses                          FocusOfEvent[]
+  participants                     ParticipantOfEvent[]
+  responsibleOrganizations         ResponsibleOrganizationOfEvent[]
+  speakers                         SpeakerOfEvent[]
+  tags                             TagOfEvent[]
+  targetGroups                     TargetGroupOfEvent[] // Legacy
+  eventTargetGroups                EventTargetGroupOfEvent[]
+  teamMembers                      TeamMemberOfEvent[]
+  waitingList                      WaitingParticipantOfEvent[]
+  eventVisibility                  EventVisibility?
+  admins                           AdminOfEvent[]
+  profileJoinInvites               InviteForProfileToJoinEvent[]
+  abuseReports                     EventAbuseReport[]               @relation("event_of_event_abuse_report")
 
   filterVector Unsupported("tsvector")? @map("filter_vector")
 
@@ -500,54 +542,60 @@ model Event {
 }
 
 model EventVisibility {
-  id                       String  @id @default(uuid())
-  name                     Boolean @default(true)
-  slug                     Boolean @default(true)
-  startTime                Boolean @default(true) @map("start_time")
-  endTime                  Boolean @default(true) @map("end_time")
-  parentEventId            Boolean @default(true) @map("parent_event_id")
-  description              Boolean @default(true)
-  descriptionRTEState      Boolean @default(false) @map("description_rte_state")
-  published                Boolean @default(true)
-  createdAt                Boolean @default(true) @map("created_at")
-  updatedAt                Boolean @default(true) @map("updated_at")
-  experienceLevelId        Boolean @default(true) @map("experience_level_id")
-  background               Boolean @default(true) // legacy
-  backgroundImage          Boolean @default(true) @map("background_image")
-  backgroundImageId        Boolean @default(true) @map("background_image_id")
-  conferenceLink           Boolean @default(true) @map("conference_link")
-  conferenceCode           Boolean @default(true) @map("conference_code")
-  participantLimit         Boolean @default(true) @map("participant_limit")
-  participationUntil       Boolean @default(true) @map("participation_until")
-  venueName                Boolean @default(true) @map("venue_name")
-  venueStreet              Boolean @default(true) @map("venue_street")
-  venueStreetNumber        Boolean @default(true) @map("venue_street_number")
-  venueCity                Boolean @default(true) @map("venue_city")
-  venueZipCode             Boolean @default(true) @map("venue_zip_code")
-  canceled                 Boolean @default(true)
-  stageId                  Boolean @default(true) @map("stage_id")
-  subline                  Boolean @default(true)
-  participationFrom        Boolean @default(true) @map("participation_from")
-  areas                    Boolean @default(true)
-  documents                Boolean @default(true)
-  types                    Boolean @default(true)
-  experienceLevel          Boolean @default(true)
-  parentEvent              Boolean @default(true)
-  childEvents              Boolean @default(true)
-  stage                    Boolean @default(true)
-  focuses                  Boolean @default(true)
-  participants             Boolean @default(false)
-  responsibleOrganizations Boolean @default(true)
-  speakers                 Boolean @default(true)
-  tags                     Boolean @default(true)
-  targetGroups             Boolean @default(true) // legacy
-  eventTargetGroups        Boolean @default(true)
-  teamMembers              Boolean @default(true)
-  admins                   Boolean @default(false)
-  waitingList              Boolean @default(false)
-  abuseReports             Boolean @default(false)
-  event                    Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  eventId                  String  @unique
+  id                               String  @id @default(uuid())
+  name                             Boolean @default(true)
+  slug                             Boolean @default(true)
+  startTime                        Boolean @default(true) @map("start_time")
+  endTime                          Boolean @default(true) @map("end_time")
+  parentEventId                    Boolean @default(true) @map("parent_event_id")
+  description                      Boolean @default(true)
+  descriptionRTEState              Boolean @default(false) @map("description_rte_state")
+  published                        Boolean @default(true)
+  createdAt                        Boolean @default(true) @map("created_at")
+  updatedAt                        Boolean @default(true) @map("updated_at")
+  experienceLevelId                Boolean @default(true) @map("experience_level_id")
+  background                       Boolean @default(true) // legacy
+  backgroundImage                  Boolean @default(true) @map("background_image")
+  backgroundImageId                Boolean @default(true) @map("background_image_id")
+  conferenceLink                   Boolean @default(true) @map("conference_link")
+  conferenceCode                   Boolean @default(true) @map("conference_code")
+  participantLimit                 Boolean @default(true) @map("participant_limit")
+  participationUntil               Boolean @default(true) @map("participation_until")
+  venueName                        Boolean @default(true) @map("venue_name")
+  venueStreet                      Boolean @default(true) @map("venue_street")
+  venueStreetNumber                Boolean @default(true) @map("venue_street_number") // legacy
+  venueCity                        Boolean @default(true) @map("venue_city")
+  venueZipCode                     Boolean @default(true) @map("venue_zip_code")
+  accessibilityInformation         Boolean @default(true) @map("accessibility_information")
+  accessibilityInformationRTEState Boolean @default(true) @map("accessibility_information_rte_state")
+  privacyInformation               Boolean @default(true) @map("privacy_information")
+  privacyInformationRTEState       Boolean @default(true) @map("privacy_information_rte_state")
+  venueLatitude                    Boolean @default(true) @map("venue_latitude")
+  venueLongitude                   Boolean @default(true) @map("venue_longitude")
+  canceled                         Boolean @default(true)
+  stageId                          Boolean @default(true) @map("stage_id")
+  subline                          Boolean @default(true)
+  participationFrom                Boolean @default(true) @map("participation_from")
+  areas                            Boolean @default(true)
+  documents                        Boolean @default(true)
+  types                            Boolean @default(true)
+  experienceLevel                  Boolean @default(true)
+  parentEvent                      Boolean @default(true)
+  childEvents                      Boolean @default(true)
+  stage                            Boolean @default(true)
+  focuses                          Boolean @default(true)
+  participants                     Boolean @default(false)
+  responsibleOrganizations         Boolean @default(true)
+  speakers                         Boolean @default(true)
+  tags                             Boolean @default(true)
+  targetGroups                     Boolean @default(true) // legacy
+  eventTargetGroups                Boolean @default(true)
+  teamMembers                      Boolean @default(true)
+  admins                           Boolean @default(false)
+  waitingList                      Boolean @default(false)
+  abuseReports                     Boolean @default(false)
+  event                            Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId                          String  @unique
 
   @@map("event_visibilities")
 }
@@ -745,7 +793,6 @@ model Area {
   AreasOnOrganizations AreasOnOrganizations[]
   AreasOnProfiles      AreasOnProfiles[]
   AreasOnProjects      AreasOnProjects[]
-  AreasOnFundings      AreasOnFundings[]
 
   @@map("areas")
 }
@@ -979,9 +1026,11 @@ model Project {
   website                              String?
   contactName                          String?                            @map("contact_name")
   street                               String?
-  streetNumber                         String?                            @map("street_number")
-  streetNumberAddition                 String?                            @map("street_number_addition")
+  streetNumber                         String?                            @map("street_number") // legacy
+  streetNumberAddition                 String?                            @map("street_number_addition") // legacy
   zipCode                              String?                            @map("zip_code")
+  longitude                            String?
+  latitude                             String?
   facebook                             String?
   linkedin                             String?
   twitter                              String?
@@ -1069,9 +1118,11 @@ model ProjectVisibility {
   website                              Boolean @default(true)
   contactName                          Boolean @default(true) @map("contact_name")
   street                               Boolean @default(true)
-  streetNumber                         Boolean @default(true) @map("street_number")
-  streetNumberAddition                 Boolean @default(true) @map("street_number_addition")
+  streetNumber                         Boolean @default(true) @map("street_number") // legacy
+  streetNumberAddition                 Boolean @default(true) @map("street_number_addition") // legacy
   zipCode                              Boolean @default(true) @map("zip_code")
+  longitude                            Boolean @default(true)
+  latitude                             Boolean @default(true)
   facebook                             Boolean @default(true)
   linkedin                             Boolean @default(true)
   twitter                              Boolean @default(true)
@@ -1295,16 +1346,6 @@ model AreasOnProjects {
   @@map("areas_on_projects")
 }
 
-model AreasOnFundings {
-  fundingId String  @map("funding_id")
-  areaId    String  @map("area_id")
-  area      Area    @relation(fields: [areaId], references: [id], onDelete: Cascade)
-  funding   Funding @relation(fields: [fundingId], references: [id], onDelete: Cascade)
-
-  @@id([fundingId, areaId])
-  @@map("areas_on_fundings")
-}
-
 model ResponsibleOrganizationOfProject {
   projectId      String       @map("project_id")
   organizationId String       @map("organization_id")
@@ -1386,7 +1427,7 @@ model Funding {
   title            String
   funders          FundersOnFundings[]
   types            FundingTypesOnFundings[]
-  regions          AreasOnFundings[]
+  regions          FundingRegionsOnFundings[]
   areas            FundingAreasOnFundings[]
   eligibleEntities FundingEligibleEntitiesOnFundings[]
   sourceFunders    String[]
@@ -1463,6 +1504,26 @@ model FundingAreasOnFundings {
   @@map("funding_areas_on_fundings")
 }
 
+model FundingRegion {
+  id       String                     @id @default(uuid())
+  title    String                     @unique
+  slug     String                     @unique
+  fundings FundingRegionsOnFundings[]
+
+  @@map("funding_regions")
+}
+
+model FundingRegionsOnFundings {
+  fundingId String        @map("funding_id")
+  regionId  String        @map("region_id")
+  createdAt DateTime      @default(now()) @map("created_at")
+  funding   Funding       @relation(fields: [fundingId], references: [id], onDelete: Cascade)
+  region    FundingRegion @relation(fields: [regionId], references: [id], onDelete: Cascade)
+
+  @@id([fundingId, regionId])
+  @@map("funding_regions_on_fundings")
+}
+
 model FundingEligibleEntity {
   id       String                              @id @default(uuid())
   title    String                              @unique
@@ -1507,11 +1568,28 @@ enum AbuseReportStatus {
   @@map("abuse_report_status")
 }
 
+enum ClaimStatus {
+  open
+  withdrawn
+  accepted
+  acceptedAndSeen
+  rejected
+
+  @@map("claim_status")
+}
+
 enum OrganizationRole {
   admin
   member
 
   @@map("organization_roles")
+}
+
+enum EventRole {
+  admin
+  member
+
+  @@map("event_roles")
 }
 
 enum JoinStatus {
@@ -1535,6 +1613,20 @@ model InviteForProfileToJoinOrganization {
 
   @@id([profileId, organizationId, role])
   @@map("invites_for_profiles_to_join_organizations")
+}
+
+model InviteForProfileToJoinEvent {
+  profileId String     @map("profile_id")
+  profile   Profile    @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  eventId   String     @map("event_id")
+  event     Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  role      EventRole
+  status    JoinStatus
+  updatedAt DateTime   @default(now()) @updatedAt @map("updated_at")
+  createdAt DateTime   @default(now()) @map("created_at")
+
+  @@id([profileId, eventId, role])
+  @@map("invites_for_profiles_to_join_events")
 }
 
 model RequestToOrganizationToAddProfile {

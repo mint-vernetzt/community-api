@@ -2,61 +2,36 @@ import type { Event, Organization, Profile, Project } from "@prisma/client";
 import type { EntitySubset } from "./types";
 
 type ProfileWithRelations = Profile & {
-  // TODO: fix type issues
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   areas: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   memberOf: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   offers: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   participatedEvents: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   seekings: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   contributedEvents: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   teamMemberOfEvents: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   teamMemberOfProjects: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   waitingForEvents: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   profileVisibility: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   notificationSettings: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   administeredEvents: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   administeredOrganizations: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   administeredProjects: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   backgroundImage: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   profileAbuseReport: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   organizationAbuseReport: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   eventAbuseReport: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   projectAbuseReport: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   abuseReports: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   joinOrganizationRequests: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   joinOrganizationInvites: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  claimOrganizationRequests: any;
   _count: any;
 };
 
 export function filterProfileByVisibility<
   T extends EntitySubset<ProfileWithRelations, T> &
-    Pick<ProfileWithRelations, "profileVisibility">
+    Pick<ProfileWithRelations, "profileVisibility">,
 >(profile: T) {
-  // TODO: fix type issue
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const filteredFields: { [key: string]: any } = {};
   for (const key in profile.profileVisibility) {
     if (key !== "id" && key !== "profileId") {
@@ -92,6 +67,7 @@ export function filterProfileByVisibility<
         key === "abuseReports" ||
         key === "joinOrganizationRequests" ||
         key === "joinOrganizationInvites" ||
+        key === "claimOrganizationRequests" ||
         key === "waitingForEvents"
       ) {
         filteredFields[key] =
@@ -157,47 +133,29 @@ export function filterProfileByVisibility<
 }
 
 type OrganizationWithRelations = Organization & {
-  // TODO: fix type issues
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   areas: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   focuses: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   networkMembers: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   memberOf: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   teamMembers: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   types: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   networkTypes: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   responsibleForEvents: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   responsibleForProject: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   organizationVisibility: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   admins: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   backgroundImage: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   abuseReports: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   profileJoinRequests: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   profileJoinInvites: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  claimRequests: any;
   _count: any;
 };
 
 export function filterOrganizationByVisibility<
   T extends EntitySubset<OrganizationWithRelations, T> &
-    Pick<OrganizationWithRelations, "organizationVisibility">
+    Pick<OrganizationWithRelations, "organizationVisibility">,
 >(organization: T) {
-  // TODO: fix type issue
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const filteredFields: { [key: string]: any } = {};
   for (const key in organization.organizationVisibility) {
     if (key !== "id" && key !== "organizationId") {
@@ -223,12 +181,20 @@ export function filterOrganizationByVisibility<
         key === "abuseReports" ||
         key === "profileJoinRequests" ||
         key === "profileJoinInvites" ||
+        key === "claimRequests" ||
         key === "responsibleForProject"
       ) {
         filteredFields[key] =
           organization.organizationVisibility[key] === true
             ? organization[key]
             : [];
+      }
+      // Fields in Organization with type Boolean
+      else if (key === "shadow") {
+        filteredFields[key] =
+          organization.organizationVisibility[key] === true
+            ? organization[key]
+            : true;
       }
       // Fields in Organization with type DateTime
       else if (key === "createdAt" || key === "updatedAt") {
@@ -262,8 +228,11 @@ export function filterOrganizationByVisibility<
         key === "quote" ||
         key === "quoteAuthor" ||
         key === "quoteAuthorInformation" ||
-        key === "streetNumber" ||
+        key === "shadowSource" ||
+        key === "streetNumber" || // legacy
         key === "zipCode" ||
+        key === "longitude" ||
+        key === "latitude" ||
         key === "instagram" ||
         key === "backgroundImage" ||
         key === "backgroundImageId" ||
@@ -288,57 +257,33 @@ export function filterOrganizationByVisibility<
 }
 
 type EventWithRelations = Event & {
-  // TODO: fix type issues
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   areas: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   documents: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   types: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   experienceLevel: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   parentEvent: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   childEvents: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   stage: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   focuses: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   participants: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   responsibleOrganizations: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   speakers: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   tags: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   targetGroups: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   eventTargetGroups: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   teamMembers: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   waitingList: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   eventVisibility: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   admins: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   backgroundImage: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   abuseReports: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   _count: any;
 };
 
 export function filterEventByVisibility<
   T extends EntitySubset<EventWithRelations, T> &
-    Pick<EventWithRelations, "eventVisibility">
+    Pick<EventWithRelations, "eventVisibility">,
 >(event: T) {
-  // TODO: fix type issue
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const filteredFields: { [key: string]: any } = {};
   for (const key in event.eventVisibility) {
     if (key !== "id" && key !== "eventId") {
@@ -349,7 +294,6 @@ export function filterEventByVisibility<
       }
       // Fields in Event with type []
       else if (
-        key === "areas" ||
         key === "documents" ||
         key === "types" ||
         key === "childEvents" ||
@@ -397,9 +341,11 @@ export function filterEventByVisibility<
         key === "participantLimit" ||
         key === "venueName" ||
         key === "venueStreet" ||
-        key === "venueStreetNumber" ||
+        key === "venueStreetNumber" || // legacy
         key === "venueCity" ||
         key === "venueZipCode" ||
+        key === "venueLongitude" ||
+        key === "venueLatitude" ||
         key === "subline" ||
         key === "experienceLevel" ||
         key === "experienceLevelId" ||
@@ -425,51 +371,30 @@ export function filterEventByVisibility<
 }
 
 type ProjectWithRelations = Project & {
-  // TODO: fix type issues
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   awards: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   disciplines: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   additionalDisciplines: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   responsibleOrganizations: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   targetGroups: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   projectTargetGroups: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   specialTargetGroups: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   formats: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   financings: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   areas: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   teamMembers: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   projectVisibility: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   admins: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   images: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   documents: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   backgroundImage: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   abuseReports: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   _count: any;
 };
 
 export function filterProjectByVisibility<
   T extends EntitySubset<ProjectWithRelations, T> &
-    Pick<ProjectWithRelations, "projectVisibility">
+    Pick<ProjectWithRelations, "projectVisibility">,
 >(project: T) {
-  // TODO: fix type issue
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const filteredFields: { [key: string]: any } = {};
   for (const key in project.projectVisibility) {
     if (key !== "id" && key !== "projectId") {
@@ -523,9 +448,11 @@ export function filterProjectByVisibility<
         key === "website" ||
         key === "contactName" ||
         key === "street" ||
-        key === "streetNumber" ||
-        key === "streetNumberAddition" ||
+        key === "streetNumber" || // legacy
+        key === "streetNumberAddition" || // legacy
         key === "zipCode" ||
+        key === "longitude" ||
+        key === "latitude" ||
         key === "facebook" ||
         key === "linkedin" ||
         key === "twitter" ||

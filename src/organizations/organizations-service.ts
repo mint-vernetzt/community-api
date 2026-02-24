@@ -1,7 +1,7 @@
-import { prismaClient } from "../cp-modules/prisma.server";
+import { prismaClient } from "../cp-modules/prisma";
 import { createClient } from "@supabase/supabase-js";
 import type { Request } from "express";
-import { getBaseURL } from "../lib/utils";
+import { getBaseURL } from "../cp-modules/utils";
 import { getImageURL } from "../cp-modules/images.server";
 import { decorate } from "../lib/matomoUrlDecorator";
 import { filterOrganizationByVisibility } from "../cp-modules/next-public-fields-filtering.server";
@@ -19,9 +19,10 @@ async function getOrganizations(request: Request, skip: number, take: number) {
       background: true,
       bio: true,
       street: true,
-      streetNumber: true,
       city: true,
       zipCode: true,
+      longitude: true,
+      latitude: true,
       supportedBy: true,
       areas: {
         select: {
@@ -62,7 +63,6 @@ async function getOrganizations(request: Request, skip: number, take: number) {
           background: true,
           bio: true,
           street: true,
-          streetNumber: true,
           city: true,
           zipCode: true,
           supportedBy: true,
@@ -118,7 +118,7 @@ async function getOrganizations(request: Request, skip: number, take: number) {
 
       const url =
         baseURL !== undefined
-          ? decorate(request, `${baseURL}/organization/${slug}`)
+          ? decorate(request, `${baseURL}/organization/${slug}/detail/about`)
           : null;
 
       const enhancedOrganization = {

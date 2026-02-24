@@ -1,9 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Request } from "express";
-import { getBaseURL } from "../lib/utils";
+import { getBaseURL } from "../cp-modules/utils";
 import { getImageURL } from "../cp-modules/images.server";
 import { decorate } from "../lib/matomoUrlDecorator";
-import { prismaClient } from "../cp-modules/prisma.server";
+import { prismaClient } from "../cp-modules/prisma";
 import { filterProjectByVisibility } from "../cp-modules/next-public-fields-filtering.server";
 import { getPublicURL } from "../cp-modules/storage.server";
 
@@ -26,9 +26,10 @@ async function getProjects(request: Request, skip: number, take: number) {
       email: true,
       phone: true,
       street: true,
-      streetNumber: true,
       city: true,
       zipCode: true,
+      longitude: true,
+      latitude: true,
       website: true,
       facebook: true,
       linkedin: true,
@@ -119,9 +120,10 @@ async function getProjects(request: Request, skip: number, take: number) {
           email: true,
           phone: true,
           street: true,
-          streetNumber: true,
           city: true,
           zipCode: true,
+          longitude: true,
+          latitude: true,
           website: true,
           facebook: true,
           linkedin: true,
@@ -156,7 +158,7 @@ async function getProjects(request: Request, skip: number, take: number) {
           autoRefreshToken: false,
           persistSession: false,
         },
-      }
+      },
     );
   }
 
@@ -185,7 +187,7 @@ async function getProjects(request: Request, skip: number, take: number) {
 
       const url =
         baseURL !== undefined
-          ? decorate(request, `${baseURL}/project/${slug}`)
+          ? decorate(request, `${baseURL}/project/${slug}/detail/about`)
           : null;
 
       const enhancedProject = {
@@ -200,7 +202,7 @@ async function getProjects(request: Request, skip: number, take: number) {
         ...filteredProject,
         url: url,
       };
-    })
+    }),
   );
 
   return enhancedProjects;
@@ -209,7 +211,7 @@ async function getProjects(request: Request, skip: number, take: number) {
 export async function getAllProjects(
   request: Request,
   skip: number,
-  take: number
+  take: number,
 ): Promise<{ skip: number; take: number; result: Projects }> {
   const publicProjects = await getProjects(request, skip, take);
   return { skip, take, result: publicProjects };
