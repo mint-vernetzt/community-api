@@ -39,7 +39,7 @@ export class ProfileController extends Controller {
           message: "Invalid access token",
         },
       },
-    }
+    },
   )
   @Response<Pick<Error, "message"> & { status: number }>(
     500,
@@ -47,11 +47,11 @@ export class ProfileController extends Controller {
     {
       status: 500,
       message: "Internal Server Error",
-    }
+    },
   )
   public async getProfile(
     @Request() request: ExpressRequest,
-    @Path() username: string
+    @Path() username: string,
   ) {
     const profile = await prismaClient.profile.findFirst({
       where: { username },
@@ -63,8 +63,16 @@ export class ProfileController extends Controller {
         academicTitle: true,
         email: true,
         email2: true,
-        avatar: true,
-        background: true,
+        avatarImageMetaData: {
+          select: {
+            path: true,
+          },
+        },
+        backgroundImageMetaData: {
+          select: {
+            path: true,
+          },
+        },
         bio: true,
         areas: {
           select: {
@@ -131,22 +139,30 @@ export class ProfileController extends Controller {
             autoRefreshToken: false,
             persistSession: false,
           },
-        }
+        },
       );
     }
 
-    const { avatar, background, username: profileUsername, ...rest } = profile;
+    const {
+      avatarImageMetaData,
+      backgroundImageMetaData,
+      username: profileUsername,
+      ...rest
+    } = profile;
     let publicAvatar: string | null = null;
     let publicBackground: string | null = null;
     if (authClient !== undefined) {
-      if (avatar !== null) {
-        const publicURL = getPublicURL(authClient, avatar);
+      if (avatarImageMetaData !== null) {
+        const publicURL = getPublicURL(authClient, avatarImageMetaData.path);
         if (publicURL !== null) {
           publicAvatar = getImageURL(publicURL);
         }
       }
-      if (background !== null) {
-        const publicURL = getPublicURL(authClient, background);
+      if (backgroundImageMetaData !== null) {
+        const publicURL = getPublicURL(
+          authClient,
+          backgroundImageMetaData.path,
+        );
         if (publicURL !== null) {
           publicBackground = getImageURL(publicURL);
         }

@@ -39,7 +39,7 @@ export class EventController extends Controller {
           message: "Invalid access token",
         },
       },
-    }
+    },
   )
   @Response<Pick<Error, "message"> & { status: number }>(
     500,
@@ -47,11 +47,11 @@ export class EventController extends Controller {
     {
       status: 500,
       message: "Internal Server Error",
-    }
+    },
   )
   public async getEvent(
     @Request() request: ExpressRequest,
-    @Path() slug: string
+    @Path() slug: string,
   ) {
     const event = await prismaClient.event.findFirst({
       where: { slug, published: true },
@@ -59,7 +59,11 @@ export class EventController extends Controller {
         id: true,
         name: true,
         slug: true,
-        background: true,
+        backgroundImageMetaData: {
+          select: {
+            path: true,
+          },
+        },
         description: true,
         subline: true,
         startTime: true,
@@ -151,6 +155,7 @@ export class EventController extends Controller {
             name: true,
             slug: true,
             background: true,
+            backgroundImageMetaData: true,
             description: true,
             subline: true,
             startTime: true,
@@ -201,15 +206,18 @@ export class EventController extends Controller {
             autoRefreshToken: false,
             persistSession: false,
           },
-        }
+        },
       );
     }
 
-    const { background, slug: eventSlug, ...rest } = event;
+    const { backgroundImageMetaData, slug: eventSlug, ...rest } = event;
     let publicBackground: string | null = null;
     if (authClient !== undefined) {
-      if (background !== null) {
-        const publicURL = getPublicURL(authClient, background);
+      if (backgroundImageMetaData !== null) {
+        const publicURL = getPublicURL(
+          authClient,
+          backgroundImageMetaData.path,
+        );
         if (publicURL !== null) {
           publicBackground = getImageURL(publicURL);
         }

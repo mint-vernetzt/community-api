@@ -18,8 +18,16 @@ async function getProjects(request: Request, skip: number, take: number) {
       id: true,
       name: true,
       slug: true,
-      logo: true,
-      background: true,
+      logoImageMetaData: {
+        select: {
+          path: true,
+        },
+      },
+      backgroundImageMetaData: {
+        select: {
+          path: true,
+        },
+      },
       headline: true,
       excerpt: true,
       description: true,
@@ -164,19 +172,23 @@ async function getProjects(request: Request, skip: number, take: number) {
 
   const enhancedProjects = await Promise.all(
     projects.map(async (project) => {
-      const { slug, logo, background, ...rest } = project;
+      const { slug, logoImageMetaData, backgroundImageMetaData, ...rest } =
+        project;
 
       let publicLogo: string | null = null;
       let publicBackground: string | null = null;
       if (authClient !== undefined) {
-        if (logo !== null) {
-          const publicURL = getPublicURL(authClient, logo);
+        if (logoImageMetaData !== null) {
+          const publicURL = getPublicURL(authClient, logoImageMetaData.path);
           if (publicURL !== null) {
             publicLogo = getImageURL(publicURL);
           }
         }
-        if (background !== null) {
-          const publicURL = getPublicURL(authClient, background);
+        if (backgroundImageMetaData !== null) {
+          const publicURL = getPublicURL(
+            authClient,
+            backgroundImageMetaData.path,
+          );
           if (publicURL !== null) {
             publicBackground = getImageURL(publicURL);
           }

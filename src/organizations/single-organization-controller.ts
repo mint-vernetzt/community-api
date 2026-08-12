@@ -39,7 +39,7 @@ export class OrganizationController extends Controller {
           message: "Invalid access token",
         },
       },
-    }
+    },
   )
   @Response<Pick<Error, "message"> & { status: number }>(
     500,
@@ -47,11 +47,11 @@ export class OrganizationController extends Controller {
     {
       status: 500,
       message: "Internal Server Error",
-    }
+    },
   )
   public async getOrganization(
     @Request() request: ExpressRequest,
-    @Path() slug: string
+    @Path() slug: string,
   ) {
     const organization = await prismaClient.organization.findFirst({
       where: { slug },
@@ -59,8 +59,16 @@ export class OrganizationController extends Controller {
         id: true,
         slug: true,
         name: true,
-        logo: true,
-        background: true,
+        logoImageMetaData: {
+          select: {
+            path: true,
+          },
+        },
+        backgroundImageMetaData: {
+          select: {
+            path: true,
+          },
+        },
         bio: true,
         street: true,
         city: true,
@@ -136,22 +144,30 @@ export class OrganizationController extends Controller {
             autoRefreshToken: false,
             persistSession: false,
           },
-        }
+        },
       );
     }
 
-    const { logo, background, slug: organizationSlug, ...rest } = organization;
+    const {
+      logoImageMetaData,
+      backgroundImageMetaData,
+      slug: organizationSlug,
+      ...rest
+    } = organization;
     let publicLogo: string | null = null;
     let publicBackground: string | null = null;
     if (authClient !== undefined) {
-      if (logo !== null) {
-        const publicURL = getPublicURL(authClient, logo);
+      if (logoImageMetaData !== null) {
+        const publicURL = getPublicURL(authClient, logoImageMetaData.path);
         if (publicURL !== null) {
           publicLogo = getImageURL(publicURL);
         }
       }
-      if (background !== null) {
-        const publicURL = getPublicURL(authClient, background);
+      if (backgroundImageMetaData !== null) {
+        const publicURL = getPublicURL(
+          authClient,
+          backgroundImageMetaData.path,
+        );
         if (publicURL !== null) {
           publicBackground = getImageURL(publicURL);
         }
@@ -163,7 +179,7 @@ export class OrganizationController extends Controller {
       baseURL !== undefined
         ? decorate(
             request,
-            `${baseURL}/organization/${organizationSlug}/detail/about`
+            `${baseURL}/organization/${organizationSlug}/detail/about`,
           )
         : null;
 

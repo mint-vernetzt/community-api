@@ -15,8 +15,16 @@ async function getOrganizations(request: Request, skip: number, take: number) {
       id: true,
       slug: true,
       name: true,
-      logo: true,
-      background: true,
+      logoImageMetaData: {
+        select: {
+          path: true,
+        },
+      },
+      backgroundImageMetaData: {
+        select: {
+          path: true,
+        },
+      },
       bio: true,
       street: true,
       city: true,
@@ -89,25 +97,29 @@ async function getOrganizations(request: Request, skip: number, take: number) {
           autoRefreshToken: false,
           persistSession: false,
         },
-      }
+      },
     );
   }
 
   const enhancedOrganizations = await Promise.all(
     organizations.map(async (organization) => {
-      const { slug, logo, background, ...rest } = organization;
+      const { slug, logoImageMetaData, backgroundImageMetaData, ...rest } =
+        organization;
 
       let publicLogo: string | null = null;
       let publicBackground: string | null = null;
       if (authClient !== undefined) {
-        if (logo !== null) {
-          const publicURL = getPublicURL(authClient, logo);
+        if (logoImageMetaData !== null) {
+          const publicURL = getPublicURL(authClient, logoImageMetaData.path);
           if (publicURL !== null) {
             publicLogo = getImageURL(publicURL);
           }
         }
-        if (background !== null) {
-          const publicURL = getPublicURL(authClient, background);
+        if (backgroundImageMetaData !== null) {
+          const publicURL = getPublicURL(
+            authClient,
+            backgroundImageMetaData.path,
+          );
           if (publicURL !== null) {
             publicBackground = getImageURL(publicURL);
           }
@@ -134,7 +146,7 @@ async function getOrganizations(request: Request, skip: number, take: number) {
         ...filteredOrganization,
         url: url,
       };
-    })
+    }),
   );
 
   return enhancedOrganizations;
@@ -143,7 +155,7 @@ async function getOrganizations(request: Request, skip: number, take: number) {
 export async function getAllOrganizations(
   request: Request,
   skip: number,
-  take: number
+  take: number,
 ): Promise<{ skip: number; take: number; result: Organizations }> {
   const publicOrganizations = await getOrganizations(request, skip, take);
   return { skip, take, result: publicOrganizations };

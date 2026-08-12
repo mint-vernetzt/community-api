@@ -15,7 +15,11 @@ async function getEvents(request: Request, skip: number, take: number) {
       id: true,
       name: true,
       slug: true,
-      background: true,
+      backgroundImageMetaData: {
+        select: {
+          path: true,
+        },
+      },
       description: true,
       subline: true,
       startTime: true,
@@ -159,18 +163,26 @@ async function getEvents(request: Request, skip: number, take: number) {
           autoRefreshToken: false,
           persistSession: false,
         },
-      }
+      },
     );
   }
 
   const enhancedEvents = await Promise.all(
     events.map(async (event) => {
-      const { slug, background, responsibleOrganizations, ...rest } = event;
+      const {
+        slug,
+        backgroundImageMetaData,
+        responsibleOrganizations,
+        ...rest
+      } = event;
 
       let publicBackground: string | null = null;
       if (authClient !== undefined) {
-        if (background !== null) {
-          const publicURL = getPublicURL(authClient, background);
+        if (backgroundImageMetaData !== null) {
+          const publicURL = getPublicURL(
+            authClient,
+            backgroundImageMetaData.path,
+          );
           if (publicURL !== null) {
             publicBackground = getImageURL(publicURL);
           }
@@ -201,7 +213,7 @@ async function getEvents(request: Request, skip: number, take: number) {
             baseURL !== undefined
               ? decorate(
                   request,
-                  `${baseURL}/organization/${slug}/detail/about`
+                  `${baseURL}/organization/${slug}/detail/about`,
                 )
               : null;
           return {
@@ -212,7 +224,7 @@ async function getEvents(request: Request, skip: number, take: number) {
               url,
             },
           };
-        }
+        },
       );
 
       const enhancedEvent = {
@@ -228,7 +240,7 @@ async function getEvents(request: Request, skip: number, take: number) {
         ...filteredEvent,
         url: url,
       };
-    })
+    }),
   );
 
   return enhancedEvents;
@@ -237,7 +249,7 @@ async function getEvents(request: Request, skip: number, take: number) {
 export async function getAllEvents(
   request: Request,
   skip: number,
-  take: number
+  take: number,
 ): Promise<{ skip: number; take: number; result: Events }> {
   const publicEvents = await getEvents(request, skip, take);
   return { skip, take, result: publicEvents };
