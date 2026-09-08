@@ -70,6 +70,9 @@ model Profile {
   joinEventInvites          InviteForProfileToJoinEvent[]
   claimOrganizationRequests OrganizationClaimRequest[]             @relation("claimer_of_organization_claim_request")
 
+  inactivityReminderState  InactivityReminderState? @map("inactivity_reminder_state")
+  inactivityReminderSentAt DateTime?                @map("inactivity_reminder_sent_at")
+
   filterVector Unsupported("tsvector")? @map("filter_vector")
 
   @@index([filterVector], type: Gin)
@@ -149,6 +152,13 @@ model BannedProfile {
   jsonData String @map("json_data")
 
   @@map("banned_profiles")
+}
+
+model InactiveProfile {
+  id       String @id
+  jsonData String @map("json_data")
+
+  @@map("inactive_profiles")
 }
 
 model Guest {
@@ -530,6 +540,15 @@ model AreasOnOrganizations {
   @@map("areas_on_organizations")
 }
 
+enum EventReminderState {
+  open
+  firstScheduled
+  secondScheduled
+  lastScheduled
+
+  @@map("event_reminder_state")
+}
+
 model Event {
   id                               String                                         @id @default(uuid())
   name                             String
@@ -600,6 +619,7 @@ model Event {
   sentParentEventJoinRequests      RequestToParentEventToAddChildEvent[]          @relation("sent_requests")
   receivedParentEventJoinRequests  RequestToParentEventToAddChildEvent[]          @relation("received_requests")
   eventTransactions                EventTransaction[]
+  reminderState                    EventReminderState                             @default(open) @map("reminder_state")
 
   filterVector Unsupported("tsvector")? @map("filter_vector")
 
@@ -1755,6 +1775,14 @@ enum JoinStatus {
   canceled
 
   @@map("join_statuses")
+}
+
+enum InactivityReminderState {
+  firstSent
+  secondSent
+  lastSent
+
+  @@map("inactivity_reminder_states")
 }
 
 model InviteForProfileToJoinOrganization {

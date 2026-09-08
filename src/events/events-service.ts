@@ -153,11 +153,16 @@ async function getEvents(request: Request, skip: number, take: number) {
   let authClient: ReturnType<typeof createClient> | undefined;
   if (
     process.env.SUPABASE_URL !== undefined &&
-    process.env.SERVICE_ROLE_KEY !== undefined
+    (process.env.SERVICE_ROLE_KEY !== undefined ||
+      process.env.SUPABASE_SECRET_KEY !== undefined)
   ) {
     authClient = createClient(
       process.env.SUPABASE_URL,
-      process.env.SERVICE_ROLE_KEY,
+      process.env.SUPABASE_SECRET_KEY !== undefined
+        ? process.env.SUPABASE_SECRET_KEY
+        : process.env.SERVICE_ROLE_KEY !== undefined
+          ? process.env.SERVICE_ROLE_KEY
+          : "",
       {
         auth: {
           autoRefreshToken: false,
@@ -227,6 +232,22 @@ async function getEvents(request: Request, skip: number, take: number) {
         },
       );
 
+      const participatingGuests = await prismaClient.guest.count({
+        where: {
+          eventId: event.id,
+          confirmed: true,
+          onWaitingList: false,
+        },
+      });
+
+      const guestsOnWaitingList = await prismaClient.guest.count({
+        where: {
+          eventId: event.id,
+          confirmed: true,
+          onWaitingList: true,
+        },
+      });
+
       const enhancedEvent = {
         ...rest,
         background: publicBackground,
@@ -239,6 +260,11 @@ async function getEvents(request: Request, skip: number, take: number) {
       return {
         ...filteredEvent,
         url: url,
+        _count: {
+          ...filteredEvent._count,
+          participants: filteredEvent._count.participants + participatingGuests,
+          waitingList: filteredEvent._count.waitingList + guestsOnWaitingList,
+        },
       };
     }),
   );

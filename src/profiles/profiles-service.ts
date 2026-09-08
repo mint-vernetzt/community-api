@@ -76,17 +76,22 @@ async function getProfiles(request: Request, skip: number, take: number) {
   let authClient: ReturnType<typeof createClient> | undefined;
   if (
     process.env.SUPABASE_URL !== undefined &&
-    process.env.SERVICE_ROLE_KEY !== undefined
+    (process.env.SERVICE_ROLE_KEY !== undefined ||
+      process.env.SUPABASE_SECRET_KEY !== undefined)
   ) {
     authClient = createClient(
       process.env.SUPABASE_URL,
-      process.env.SERVICE_ROLE_KEY,
+      process.env.SUPABASE_SECRET_KEY !== undefined
+        ? process.env.SUPABASE_SECRET_KEY
+        : process.env.SERVICE_ROLE_KEY !== undefined
+          ? process.env.SERVICE_ROLE_KEY
+          : "",
       {
         auth: {
           autoRefreshToken: false,
           persistSession: false,
         },
-      }
+      },
     );
   }
 
@@ -128,7 +133,7 @@ async function getProfiles(request: Request, skip: number, take: number) {
         ...filteredProfile,
         url: url,
       };
-    })
+    }),
   );
   return enhancedProfiles;
 }
@@ -136,7 +141,7 @@ async function getProfiles(request: Request, skip: number, take: number) {
 export async function getAllProfiles(
   request: Request,
   skip: number,
-  take: number
+  take: number,
 ): Promise<{ skip: number; take: number; result: Profiles }> {
   const publicProjects = await getProfiles(request, skip, take);
   return { skip, take, result: publicProjects };
